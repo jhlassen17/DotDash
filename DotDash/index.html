@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morse Code Encoder / Decoder - HANF</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #242836;
+            --border: #2e3345;
+            --accent: #6c63ff;
+            --accent-glow: #6c63ff55;
+            --green: #2ecc71;
+            --red: #e74c3c;
+            --yellow: #f1c40f;
+            --text: #e0e0e8;
+            --text-dim: #8888a0;
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, #6c63ff, #e74c3c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+        }
+
+            .card h2 {
+                font-size: 1.1rem;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+                .card h2 .icon {
+                    font-size: 1.3rem;
+                }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            padding: 14px;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+            textarea:focus {
+                border-color: var(--accent);
+            }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            button:active {
+                transform: scale(0.97);
+            }
+
+        .btn-encode {
+            background: var(--accent);
+            color: white;
+        }
+
+            .btn-encode:hover {
+                background: #5a52e0;
+                box-shadow: 0 0 20px var(--accent-glow);
+            }
+
+            .btn-encode:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+        .btn-download {
+            background: var(--yellow);
+            color: #1a1d27;
+        }
+
+            .btn-download:hover {
+                background: #d4ac0d;
+                box-shadow: 0 0 20px #f1c40f44;
+            }
+
+            .btn-download:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+        .btn-decode {
+            background: var(--green);
+            color: white;
+        }
+
+            .btn-decode:hover {
+                background: #27ae60;
+                box-shadow: 0 0 20px #2ecc7144;
+            }
+
+        .btn-stop {
+            background: var(--red);
+            color: white;
+        }
+
+            .btn-stop:hover {
+                background: #c0392b;
+            }
+
+        .btn-clear {
+            background: var(--surface2);
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+        }
+
+            .btn-clear:hover {
+                color: var(--text);
+                border-color: var(--text-dim);
+            }
+
+        .morse-display {
+            font-family: 'Courier New', monospace;
+            font-size: 1.6rem;
+            letter-spacing: 4px;
+            color: var(--yellow);
+            min-height: 48px;
+            padding: 14px;
+            background: var(--surface2);
+            border-radius: 8px;
+            word-break: break-all;
+            line-height: 1.6;
+            margin-top: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            background: var(--surface2);
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-dim);
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
+
+            .status-dot.active {
+                background: var(--green);
+                box-shadow: 0 0 8px var(--green);
+                animation: pulse 1s infinite;
+            }
+
+            .status-dot.playing {
+                background: var(--yellow);
+                box-shadow: 0 0 8px var(--yellow);
+                animation: pulse 0.5s infinite;
+            }
+
+            .status-dot.rendering {
+                background: var(--accent);
+                box-shadow: 0 0 8px var(--accent);
+                animation: pulse 0.3s infinite;
+            }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .setting {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 140px;
+        }
+
+            .setting label {
+                font-size: 0.8rem;
+                color: var(--text-dim);
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+            .setting input[type="range"] {
+                width: 100%;
+                accent-color: var(--accent);
+            }
+
+            .setting .val {
+                font-size: 0.85rem;
+                color: var(--accent);
+                font-weight: 600;
+            }
+
+        .reference {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+            .reference table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            .reference td {
+                padding: 3px 8px;
+                border-bottom: 1px solid var(--border);
+            }
+
+                .reference td:first-child {
+                    font-weight: 700;
+                    color: var(--text);
+                    width: 40px;
+                    text-align: center;
+                }
+
+                .reference td:last-child {
+                    font-family: 'Courier New', monospace;
+                    color: var(--yellow);
+                    letter-spacing: 2px;
+                }
+
+        .decode-output {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            padding: 14px;
+            background: var(--surface2);
+            border-radius: 8px;
+            min-height: 50px;
+            border: 1px solid var(--border);
+            margin-top: 12px;
+            word-break: break-all;
+        }
+
+            .decode-output .cursor {
+                display: inline-block;
+                width: 2px;
+                height: 1.2em;
+                background: var(--accent);
+                animation: blink 1s infinite;
+                vertical-align: text-bottom;
+            }
+
+        @keyframes blink {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .current-symbol {
+            font-size: 3rem;
+            text-align: center;
+            padding: 20px;
+            color: var(--yellow);
+            font-family: 'Courier New', monospace;
+            min-height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .waveform-canvas {
+            width: 100%;
+            height: 60px;
+            border-radius: 8px;
+            background: var(--surface2);
+            margin-top: 12px;
+        }
+
+        .file-input-wrapper {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+            .file-input-wrapper input[type="file"] {
+                display: none;
+            }
+
+        .file-label {
+            padding: 10px 18px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+            .file-label:hover {
+                border-color: var(--accent);
+                color: var(--text);
+            }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            .morse-display {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>&#9889; Morse Code</h1>
+    <p class="subtitle">Encode text to audio &middot; Decode microphone or audio files to text</p>
+    <div class="container">
+        <!-- ENCODE SECTION -->
+        <div class="card">
+            <h2><span class="icon">&#128229;</span> Encode &mdash; Text to Morse</h2>
+            <textarea id="encodeInput" placeholder="Type text here to encode to Morse code...">HELLO WORLD</textarea>
+            <div class="morse-display" id="morsePreview"></div>
+            <div class="settings-row">
+                <div class="setting">
+                    <label>Dot Duration</label>
+                    <input type="range" id="dotDuration" min="50" max="300" value="120">
+                    <span class="val" id="dotDurationVal">120 ms</span>
+                </div>
+                <div class="setting">
+                    <label>Tone Frequency</label>
+                    <input type="range" id="toneFreq" min="400" max="1200" value="700" step="50">
+                    <span class="val" id="toneFreqVal">700 Hz</span>
+                </div>
+                <div class="setting">
+                    <label>Volume</label>
+                    <input type="range" id="volume" min="0" max="100" value="70">
+                    <span class="val" id="volumeVal">70%</span>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn-encode" id="btnPlay" onclick="playMorse()">&#9654; Play Morse</button>
+                <button class="btn-download" id="btnDownload" onclick="downloadMorseWAV()">&#11015; Download WAV</button>
+                <button class="btn-clear" onclick="stopPlaying()">&#9647; Stop</button>
+            </div>
+            <div class="status-bar">
+                <div class="status-dot" id="encodeStatus"></div>
+                <span id="encodeStatusText">Ready</span>
+            </div>
+        </div>
+        <!-- DECODE SECTION -->
+        <div class="card">
+            <h2><span class="icon">&#127907;</span> Decode &mdash; Morse to Text</h2>
+            <div class="current-symbol" id="currentSymbol">&#8212;</div>
+            <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
+            <div class="decode-output" id="decodeOutput">
+                <span id="decodeText"></span><span class="cursor"></span>
+            </div>
+            <div class="settings-row">
+                <div class="setting">
+                    <label>Sensitivity</label>
+                    <input type="range" id="sensitivity" min="1" max="50" value="20">
+                    <span class="val" id="sensitivityVal">20</span>
+                </div>
+                <div class="setting">
+                    <label>Dot Estimate</label>
+                    <input type="range" id="dotEstimate" min="50" max="400" value="150">
+                    <span class="val" id="dotEstimateVal">150 ms</span>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn-decode" id="btnListen" onclick="startListening()">&#127907; Start Mic</button>
+                <button class="btn-stop" id="btnStopDecode" onclick="stopDecoding()" style="display:none;">&#9647; Stop</button>
+                <button class="btn-clear" onclick="clearDecode()">&#128465; Clear</button>
+            </div>
+            <div class="file-input-wrapper">
+                <label class="file-label" for="fileInput">&#128196; Upload Audio File (mp3, m4a, wav, ogg)</label>
+                <input type="file" id="fileInput" accept="audio/*" onchange="handleFileUpload(this.files[0])">
+            </div>
+            <div class="status-bar">
+                <div class="status-dot" id="decodeStatus"></div>
+                <span id="decodeStatusText">Ready</span>
+            </div>
+        </div>
+        <!-- REFERENCE -->
+        <div class="card">
+            <h2><span class="icon">&#128218;</span> Morse Code Reference</h2>
+            <div class="reference" id="refTable"></div>
+        </div>
+    </div>
+    <script>
+        // ─── Morse Code Map ──────────────────────────────────────────────
+        var MORSE_MAP = {};
+        MORSE_MAP['A'] = '.-'; MORSE_MAP['B'] = '-...'; MORSE_MAP['C'] = '-.-.'; MORSE_MAP['D'] = '-..';
+        MORSE_MAP['E'] = '.'; MORSE_MAP['F'] = '..-.'; MORSE_MAP['G'] = '--.'; MORSE_MAP['H'] = '....';
+        MORSE_MAP['I'] = '..'; MORSE_MAP['J'] = '.---'; MORSE_MAP['K'] = '-.-'; MORSE_MAP['L'] = '.-..';
+        MORSE_MAP['M'] = '--'; MORSE_MAP['N'] = '-.'; MORSE_MAP['O'] = '---'; MORSE_MAP['P'] = '.--.';
+        MORSE_MAP['Q'] = '--.-'; MORSE_MAP['R'] = '.-.'; MORSE_MAP['S'] = '...'; MORSE_MAP['T'] = '-';
+        MORSE_MAP['U'] = '..-'; MORSE_MAP['V'] = '...-'; MORSE_MAP['W'] = '.--'; MORSE_MAP['X'] = '-..-';
+        MORSE_MAP['Y'] = '-.--'; MORSE_MAP['Z'] = '--..';
+        MORSE_MAP['0'] = '-----'; MORSE_MAP['1'] = '.----'; MORSE_MAP['2'] = '..---'; MORSE_MAP['3'] = '...--';
+        MORSE_MAP['4'] = '....-'; MORSE_MAP['5'] = '.....'; MORSE_MAP['6'] = '-....'; MORSE_MAP['7'] = '--...';
+        MORSE_MAP['8'] = '---..'; MORSE_MAP['9'] = '----.';
+        MORSE_MAP['.'] = '.-.-.-'; MORSE_MAP[','] = '--..--'; MORSE_MAP['?'] = '..--..';
+        MORSE_MAP["'"] = '.'; MORSE_MAP['!'] = '-.-.--'; MORSE_MAP['/'] = '-..-.';
+        MORSE_MAP['('] = '-.--.'; MORSE_MAP[')'] = '-.--.-'; MORSE_MAP['&'] = '.-...';
+        MORSE_MAP[':'] = '---...'; MORSE_MAP[';'] = '-.-.-.'; MORSE_MAP['='] = '-...-';
+        MORSE_MAP['+'] = '.-.-.'; MORSE_MAP['-'] = '-....-'; MORSE_MAP['_'] = '..--.-';
+        MORSE_MAP['"'] = '.-..-.'; MORSE_MAP['$'] = '...-..-'; MORSE_MAP['@'] = '.--.-.';
+        var REVERSE_MORSE = {};
+        for (var key in MORSE_MAP) {
+            if (!(MORSE_MAP[key] in REVERSE_MORSE)) REVERSE_MORSE[MORSE_MAP[key]] = key;
+        }
+
+        // ─── Build Reference Table ───────────────────────────────────────
+        (function () {
+            var el = document.getElementById('refTable');
+            var html = '<table>';
+            for (var k in MORSE_MAP) html += '<tr><td>' + k + '</td><td>' + MORSE_MAP[k] + '</td></tr>';
+            html += '</table>';
+            el.innerHTML = html;
+        })();
+
+        // ─── Live Preview ────────────────────────────────────────────────
+        var encodeInput = document.getElementById('encodeInput');
+        var morsePreview = document.getElementById('morsePreview');
+        encodeInput.addEventListener('input', function () {
+            var text = encodeInput.value.toUpperCase();
+            var parts = [];
+            for (var i = 0; i < text.length; i++) {
+                if (MORSE_MAP[text[i]]) parts.push(MORSE_MAP[text[i]]);
+            }
+            morsePreview.textContent = parts.join(' ') || '';
+        });
+        encodeInput.dispatchEvent(new Event('input'));
+
+        // ─── Settings Display ────────────────────────────────────────────
+        function bindSlider(sid, vid, suf) {
+            suf = suf || '';
+            var s = document.getElementById(sid), v = document.getElementById(vid);
+            s.addEventListener('input', function () { v.textContent = s.value + suf; });
+        }
+        bindSlider('dotDuration', 'dotDurationVal', ' ms');
+        bindSlider('toneFreq', 'toneFreqVal', ' Hz');
+        bindSlider('volume', 'volumeVal', '%');
+        bindSlider('sensitivity', 'sensitivityVal', '');
+        bindSlider('dotEstimate', 'dotEstimateVal', ' ms');
+
+        // ─── Audio Context & Analyzer (Shared) ───────────────────────────
+        var audioCtx = null;
+        var analyser = null;
+        var isDecoding = false;
+        var decodeRAF = null;
+        var activeSource = null;
+        var micStream = null;
+        function getAudioCtx() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            return audioCtx;
+        }
+        function getAnalyser() {
+            var ctx = getAudioCtx();
+            if (!analyser || analyser.context !== ctx) {
+                analyser = ctx.createAnalyser();
+                analyser.fftSize = 512;
+                analyser.smoothingTimeConstant = 0.3;
+            }
+            return analyser;
+        }
+
+        // ─── ENCODER / PLAYER ────────────────────────────────────────────
+        var isPlaying = false;
+        var playAbort = false;
+        function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+        function playMorse() {
+            if (isPlaying) return;
+            isPlaying = true; playAbort = false;
+            var btn = document.getElementById('btnPlay');
+            btn.disabled = true;
+            var statusDot = document.getElementById('encodeStatus');
+            var statusText = document.getElementById('encodeStatusText');
+            statusDot.className = 'status-dot playing';
+            statusText.textContent = 'Playing...';
+            var ctx = getAudioCtx();
+            var dotDur = parseInt(document.getElementById('dotDuration').value) / 1000;
+            var freq = parseInt(document.getElementById('toneFreq').value);
+            var vol = parseInt(document.getElementById('volume').value) / 100;
+            var text = encodeInput.value.toUpperCase();
+            var i = 0;
+            function processNextChar() {
+                if (playAbort || i >= text.length) { finishPlaying(); return; }
+                var ch = text[i];
+                if (ch === ' ') { i++; setTimeout(processNextChar, dotDur * 7 * 1000); return; }
+                var morse = MORSE_MAP[ch];
+                if (!morse) { i++; processNextChar(); return; }
+                var symIdx = 0;
+                function playNextSymbol() {
+                    if (playAbort || symIdx >= morse.length) {
+                        i++;
+                        if (i < text.length) setTimeout(processNextChar, dotDur * 3 * 1000);
+                        else finishPlaying();
+                        return;
+                    }
+                    var sym = morse[symIdx];
+                    var dur = (sym === '.') ? dotDur : dotDur * 3;
+                    var osc = ctx.createOscillator();
+                    var gain = ctx.createGain();
+                    osc.type = 'sine'; osc.frequency.value = freq;
+                    gain.gain.value = vol;
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start();
+                    setTimeout(function () {
+                        osc.stop(); osc.disconnect(); gain.disconnect();
+                        symIdx++;
+                        if (symIdx < morse.length) setTimeout(playNextSymbol, dotDur * 1000);
+                        else {
+                            i++;
+                            if (i < text.length) setTimeout(processNextChar, dotDur * 3 * 1000);
+                            else finishPlaying();
+                        }
+                    }, dur * 1000);
+                }
+                playNextSymbol();
+            }
+            function finishPlaying() {
+                isPlaying = false; playAbort = false;
+                btn.disabled = false; statusDot.className = 'status-dot';
+                statusText.textContent = 'Ready';
+            }
+            processNextChar();
+        }
+        function stopPlaying() {
+            playAbort = true; isPlaying = false;
+            document.getElementById('btnPlay').disabled = false;
+            document.getElementById('encodeStatus').className = 'status-dot';
+            document.getElementById('encodeStatusText').textContent = 'Stopped';
+        }
+
+        // ─── WAV DOWNLOAD ────────────────────────────────────────────────
+        function downloadMorseWAV() {
+            var btn = document.getElementById('btnDownload');
+            var statusDot = document.getElementById('encodeStatus');
+            var statusText = document.getElementById('encodeStatusText');
+            btn.disabled = true;
+            statusDot.className = 'status-dot rendering';
+            statusText.textContent = 'Rendering audio...';
+            var dotDur = parseInt(document.getElementById('dotDuration').value) / 1000;
+            var freq = parseInt(document.getElementById('toneFreq').value);
+            var vol = parseInt(document.getElementById('volume').value) / 100;
+            var text = encodeInput.value.toUpperCase();
+            var totalDur = 0;
+            for (var ci = 0; ci < text.length; ci++) {
+                var ch = text[ci];
+                if (ch === ' ') { totalDur += dotDur * 7; continue; }
+                var morse = MORSE_MAP[ch];
+                if (!morse) continue;
+                for (var si = 0; si < morse.length; si++) {
+                    totalDur += (morse[si] === '.') ? dotDur : dotDur * 3;
+                    if (si < morse.length - 1) totalDur += dotDur;
+                }
+                if (ci < text.length - 1) {
+                    var nextCh = text[ci + 1];
+                    if (nextCh !== ' ') totalDur += dotDur * 3;
+                }
+            }
+            totalDur += 0.1;
+            var sampleRate = 44100;
+            var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDur, sampleRate);
+            var currentTime = 0;
+            var masterGain = offlineCtx.createGain();
+            masterGain.gain.value = vol;
+            masterGain.connect(offlineCtx.destination);
+            for (var ci = 0; ci < text.length; ci++) {
+                var ch = text[ci];
+                if (ch === ' ') { currentTime += dotDur * 7; continue; }
+                var morse = MORSE_MAP[ch];
+                if (!morse) continue;
+                for (var si = 0; si < morse.length; si++) {
+                    var sym = morse[si];
+                    var dur = (sym === '.') ? dotDur : dotDur * 3;
+                    var osc = offlineCtx.createOscillator();
+                    var gain = offlineCtx.createGain();
+                    osc.type = 'sine'; osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(vol, currentTime);
+                    gain.gain.setValueAtTime(0, currentTime + dur);
+                    osc.connect(gain); gain.connect(masterGain);
+                    osc.start(currentTime); osc.stop(currentTime + dur);
+                    currentTime += dur;
+                    if (si < morse.length - 1) currentTime += dotDur;
+                }
+                if (ci < text.length - 1) {
+                    var nextCh = text[ci + 1];
+                    if (nextCh !== ' ') currentTime += dotDur * 3;
+                }
+            }
+            offlineCtx.startRendering().then(function (renderedBuffer) {
+                var wavBlob = audioBufferToWav(renderedBuffer);
+                var url = URL.createObjectURL(wavBlob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = 'morse_' + text.replace(/[^A-Z0-9]/g, '_').substring(0, 30) + '.wav';
+                document.body.appendChild(a); a.click();
+                document.body.removeChild(a); URL.revokeObjectURL(url);
+                btn.disabled = false; statusDot.className = 'status-dot';
+                statusText.textContent = 'Downloaded!';
+                setTimeout(function () { if (statusText.textContent === 'Downloaded!') statusText.textContent = 'Ready'; }, 2000);
+            }).catch(function (err) {
+                btn.disabled = false; statusDot.className = 'status-dot';
+                statusText.textContent = 'Error: ' + err.message; console.error(err);
+            });
+        }
+        function audioBufferToWav(buffer) {
+            var numChannels = buffer.numberOfChannels;
+            var sampleRate = buffer.sampleRate;
+            var channelData = buffer.getChannelData(0);
+            if (numChannels > 1) {
+                var mixed = new Float32Array(channelData.length);
+                for (var c = 0; c < numChannels; c++) {
+                    var ch = buffer.getChannelData(c);
+                    for (var i = 0; i < ch.length; i++) mixed[i] += ch[i] / numChannels;
+                }
+                channelData = mixed; numChannels = 1;
+            }
+            var dataLength = channelData.length * 2;
+            var wavBuffer = new ArrayBuffer(44 + dataLength);
+            var view = new DataView(wavBuffer);
+            writeString(view, 0, 'RIFF'); view.setUint32(4, 36 + dataLength, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt '); view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numChannels * 2, true);
+            view.setUint16(32, numChannels * 2, true); view.setUint16(34, 16, true);
+            writeString(view, 36, 'data'); view.setUint32(40, dataLength, true);
+            var offset = 44;
+            for (var i = 0; i < channelData.length; i++) {
+                var sample = Math.max(-1, Math.min(1, channelData[i]));
+                sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                view.setInt16(offset, sample, true); offset += 2;
+            }
+            return new Blob([wavBuffer], { type: 'audio/wav' });
+        }
+        function writeString(view, offset, string) {
+            for (var i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+        }
+
+        // ─── DECODER STATE & HELPERS ─────────────────────────────────────
+        var decoderState = {
+            symbolBuffer: '', decodedText: '', lastSignalEnd: 0,
+            inSignal: false, signalStart: 0, dotDurationEstimate: 150,
+            signalDurations: [], canvasCtx: null, waveformData: null
+        };
+        function morseToChar(morse) {
+            return REVERSE_MORSE[morse] || '[' + morse + ']';
+        }
+        function decodeSymbol(morse) {
+            decoderState.decodedText += morseToChar(morse);
+        }
+        function updateDecodeDisplay() {
+            document.getElementById('decodeText').textContent = decoderState.decodedText;
+        }
+        function clearDecode() {
+            decoderState.decodedText = '';
+            decoderState.symbolBuffer = '';
+            decoderState.signalDurations = [];
+            document.getElementById('decodeText').textContent = '';
+            document.getElementById('currentSymbol').textContent = '\u2014';
+        }
+
+        // ─── FILE DECODER (Direct Buffer Analysis) ───────────────────────
+        function decodeFileBuffer(buffer) {
+            var samples = buffer.getChannelData(0);
+            var sampleRate = buffer.sampleRate;
+            var windowMs = 20;
+            var windowSize = Math.floor(sampleRate * (windowMs / 1000));
+            var threshold = 0.05;
+            var state = 'silence';
+            var windowStart = 0;
+            var durations = [];
+            var decodedText = '';
+            var symbolBuffer = '';
+            var dotEst = 0.12;
+
+            for (var i = 0; i < samples.length; i += windowSize) {
+                var sum = 0;
+                var end = Math.min(i + windowSize, samples.length);
+                for (var j = i; j < end; j++) sum += samples[j] * samples[j];
+                var rms = Math.sqrt(sum / (end - i));
+                var newState = rms > threshold ? 'signal' : 'silence';
+                if (newState !== state) {
+                    durations.push({ type: state, dur: (i - windowStart) / sampleRate });
+                    state = newState; windowStart = i;
+                }
+            }
+            if (windowStart < samples.length) {
+                durations.push({ type: state, dur: (samples.length - windowStart) / sampleRate });
+            }
+
+            for (var k = 0; k < durations.length; k++) {
+                var seg = durations[k];
+                if (seg.type === 'signal') {
+                    var sym = (seg.dur < dotEst * 1.8) ? '.' : '-';
+                    symbolBuffer += sym;
+                    var est = (sym === '.') ? seg.dur : seg.dur / 3;
+                    dotEst = dotEst * 0.85 + est * 0.15;
+                } else {
+                    if (seg.dur >= dotEst * 7) {
+                        decodedText += morseToChar(symbolBuffer) + ' ';
+                        symbolBuffer = '';
+                    } else if (seg.dur >= dotEst * 3) {
+                        decodedText += morseToChar(symbolBuffer);
+                        symbolBuffer = '';
+                    }
+                }
+            }
+            if (symbolBuffer.length > 0) decodedText += morseToChar(symbolBuffer);
+            return decodedText;
+        }
+
+        // ─── DECODER CONTROLS ────────────────────────────────────────────
+        function startListening() {
+            if (isDecoding) return;
+            stopDecoding();
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function (stream) {
+                    micStream = stream;
+                    var source = getAudioCtx().createMediaStreamSource(stream);
+                    source.connect(getAnalyser());
+                    activeSource = source;
+                    isDecoding = true;
+                    document.getElementById('btnListen').style.display = 'none';
+                    document.getElementById('btnStopDecode').style.display = '';
+                    document.getElementById('decodeStatus').className = 'status-dot active';
+                    document.getElementById('decodeStatusText').textContent = 'Listening to mic...';
+                    decoderState.dotDurationEstimate = parseInt(document.getElementById('dotEstimate').value);
+                    decoderState.signalDurations = []; decoderState.symbolBuffer = '';
+                    decoderState.decodedText = ''; decoderState.inSignal = false;
+                    decoderState.lastSignalEnd = 0;
+                    document.getElementById('decodeText').textContent = '';
+                    document.getElementById('currentSymbol').textContent = '\u2014';
+                    startDecodeLoop();
+                })
+                .catch(function (err) {
+                    console.error('Mic error:', err);
+                    alert('Microphone access denied. Please allow microphone access.');
+                });
+        }
+        function handleFileUpload(file) {
+            if (!file) return;
+            stopDecoding();
+            clearDecode();
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var ctx = getAudioCtx();
+                ctx.resume();
+                ctx.decodeAudioData(e.target.result).then(function (buffer) {
+                    document.getElementById('decodeStatus').className = 'status-dot active';
+                    document.getElementById('decodeStatusText').textContent = 'Decoding file...';
+                    // Use direct buffer analysis for frame-accurate decoding
+                    setTimeout(function () {
+                        var result = decodeFileBuffer(buffer);
+                        document.getElementById('decodeText').textContent = result;
+                        document.getElementById('decodeStatus').className = 'status-dot';
+                        document.getElementById('decodeStatusText').textContent = 'Decoded: ' + result.length + ' chars';
+                    }, 10);
+                }).catch(function (err) {
+                    alert('Error decoding audio file: ' + err.message);
+                });
+            };
+            reader.readAsArrayBuffer(file);
+            document.getElementById('fileInput').value = '';
+        }
+        function stopDecoding() {
+            isDecoding = false;
+            if (decodeRAF) cancelAnimationFrame(decodeRAF);
+            if (decoderState.symbolBuffer.length > 0) {
+                decodeSymbol(decoderState.symbolBuffer);
+                decoderState.symbolBuffer = '';
+                updateDecodeDisplay();
+            }
+            if (activeSource) {
+                try { activeSource.stop(); } catch (e) { }
+                activeSource.disconnect(); activeSource = null;
+            }
+            if (micStream) {
+                micStream.getTracks().forEach(function (t) { t.stop(); });
+                micStream = null;
+            }
+            document.getElementById('btnListen').style.display = '';
+            document.getElementById('btnStopDecode').style.display = 'none';
+            document.getElementById('decodeStatus').className = 'status-dot';
+            document.getElementById('decodeStatusText').textContent = 'Ready';
+        }
+        function startDecodeLoop() {
+            if (!isDecoding) return;
+            var canvas = document.getElementById('waveformCanvas');
+            decoderState.canvasCtx = canvas.getContext('2d');
+            decoderState.waveformData = new Uint8Array(getAnalyser().frequencyBinCount);
+            decodeLoop();
+        }
+        function decodeLoop() {
+            if (!isDecoding) return;
+            var ds = decoderState;
+            var now = performance.now();
+            ds.waveformData.fill(0);
+            getAnalyser().getByteTimeDomainData(ds.waveformData);
+            var energy = 0;
+            for (var i = 0; i < ds.waveformData.length; i++) {
+                var v = (ds.waveformData[i] - 128) / 128;
+                energy += v * v;
+            }
+            energy = Math.sqrt(energy / ds.waveformData.length);
+            var threshold = parseInt(document.getElementById('sensitivity').value) / 1000;
+            drawWaveform(ds.waveformData, energy, threshold);
+            if (energy > threshold && !ds.inSignal) {
+                ds.inSignal = true; ds.signalStart = now;
+            } else if (energy <= threshold && ds.inSignal) {
+                ds.inSignal = false;
+                var signalDur = now - ds.signalStart;
+                var dotEst = ds.dotDurationEstimate;
+                var symbol = (signalDur < dotEst * 1.8) ? '.' : '-';
+                ds.symbolBuffer += symbol;
+                document.getElementById('currentSymbol').textContent = ds.symbolBuffer;
+                ds.lastSignalEnd = now;
+                var estDur = (symbol === '.') ? signalDur : signalDur / 3;
+                ds.signalDurations.push(estDur);
+                if (ds.signalDurations.length > 20) ds.signalDurations.shift();
+                var sum = 0;
+                for (var k = 0; k < ds.signalDurations.length; k++) sum += ds.signalDurations[k];
+                ds.dotDurationEstimate = Math.max(50, sum / ds.signalDurations.length);
+            }
+            if (!ds.inSignal && ds.symbolBuffer.length > 0) {
+                var silence = now - ds.lastSignalEnd;
+                var dotEst = ds.dotDurationEstimate;
+                if (silence >= dotEst * 7) {
+                    decodeSymbol(ds.symbolBuffer); ds.decodedText += ' ';
+                    ds.symbolBuffer = ''; document.getElementById('currentSymbol').textContent = '\u2014';
+                    updateDecodeDisplay(); ds.lastSignalEnd = now;
+                } else if (silence >= dotEst * 3) {
+                    decodeSymbol(ds.symbolBuffer); ds.symbolBuffer = '';
+                    document.getElementById('currentSymbol').textContent = '\u2014';
+                    updateDecodeDisplay(); ds.lastSignalEnd = now;
+                } else if (silence >= 2500) {
+                    decodeSymbol(ds.symbolBuffer); ds.symbolBuffer = '';
+                    document.getElementById('currentSymbol').textContent = '\u2014';
+                    updateDecodeDisplay(); ds.lastSignalEnd = now;
+                }
+            }
+            decodeRAF = requestAnimationFrame(decodeLoop);
+        }
+
+        // ─── Waveform Visualization ──────────────────────────────────────
+        function drawWaveform(data, energy, threshold) {
+            var canvas = document.getElementById('waveformCanvas');
+            var ctx = decoderState.canvasCtx;
+            if (!ctx) return;
+            var w = canvas.width = canvas.offsetWidth * 2;
+            var h = canvas.height = canvas.offsetHeight * 2;
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = '#1a1d27'; ctx.fillRect(0, 0, w, h);
+            ctx.strokeStyle = 'rgba(231, 76, 60, 0.27)'; ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]); ctx.beginPath();
+            var threshY = h - threshold * h * 2;
+            ctx.moveTo(0, threshY); ctx.lineTo(w, threshY); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.strokeStyle = energy > threshold ? '#f1c40f' : '#6c63ff';
+            ctx.lineWidth = 2; ctx.beginPath();
+            var sliceWidth = w / data.length; var x = 0;
+            for (var i = 0; i < data.length; i++) {
+                var v = data[i] / 128.0; var y = (v * h) / 2;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            ctx.stroke();
+            var energyBar = Math.min(1, energy * 5);
+            var barColor = energy > threshold ? '#2ecc71' : '#e74c3c';
+            ctx.fillStyle = barColor + '33'; ctx.fillRect(0, 0, w * energyBar, 3);
+        }
+    </script>
+</body>
+</html>
