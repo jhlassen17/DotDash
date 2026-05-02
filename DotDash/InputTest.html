@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morse Code Input</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #242836;
+            --border: #2e3345;
+            --text: #e2e4ed;
+            --text-dim: #7a7f96;
+            --accent: #5b8def;
+            --accent-glow: rgba(91, 141, 239, 0.25);
+            --dot: #5b8def;
+            --dash: #36d6a0;
+            --danger: #ef5b5b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            margin-bottom: 24px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* --- Input Area --- */
+        .input-wrapper {
+            position: relative;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+            .input-wrapper:focus-within {
+                border-color: var(--accent);
+                box-shadow: 0 0 0 3px var(--accent-glow);
+            }
+
+        .input-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+            padding: 12px 16px 0;
+        }
+
+        #morseInput {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 1.6rem;
+            padding: 12px 16px 16px;
+            letter-spacing: 3px;
+            line-height: 1.6;
+            word-break: break-all;
+        }
+
+            #morseInput::placeholder {
+                color: var(--text-dim);
+                opacity: 0.5;
+                letter-spacing: 1px;
+                font-size: 1rem;
+            }
+
+        .char-count {
+            text-align: right;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            padding: 0 16px 10px;
+        }
+
+        /* --- Live Translation --- */
+        .translation-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            min-height: 52px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .translation-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+        }
+
+        .translation-text {
+            font-size: 1.1rem;
+            color: var(--accent);
+            letter-spacing: 2px;
+            min-height: 1.4em;
+        }
+
+            .translation-text.empty {
+                color: var(--text-dim);
+                opacity: 0.4;
+                font-size: 0.85rem;
+                letter-spacing: 0;
+            }
+
+        /* --- Custom Keyboard --- */
+        .keyboard-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .keyboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .keyboard-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+        }
+
+        .keyboard-hint {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            opacity: 0.6;
+        }
+
+        .keyboard-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            justify-content: center;
+        }
+
+            .keyboard-row:last-child {
+                margin-bottom: 0;
+            }
+
+        .key {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface2);
+            color: var(--text);
+            font-family: inherit;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.12s;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .key:active {
+                transform: scale(0.93);
+                background: var(--accent);
+                border-color: var(--accent);
+            }
+
+            .key::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: radial-gradient(circle at center, rgba(255,255,255,0.08), transparent 70%);
+                opacity: 0;
+                transition: opacity 0.15s;
+            }
+
+            .key:active::after {
+                opacity: 1;
+            }
+
+        .key-dot {
+            width: 72px;
+            height: 64px;
+            font-size: 2rem;
+            color: var(--dot);
+        }
+
+        .key-dash {
+            width: 72px;
+            height: 64px;
+            font-size: 1.2rem;
+            color: var(--dash);
+        }
+
+        .key-space {
+            flex: 1;
+            max-width: 200px;
+            height: 48px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+        }
+
+        .key-delete {
+            width: 72px;
+            height: 64px;
+            font-size: 1.2rem;
+            color: var(--danger);
+        }
+
+        .key-clear {
+            width: 100%;
+            height: 44px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            border-style: dashed;
+            margin-top: 4px;
+        }
+
+        /* --- Reference Table --- */
+        .reference-toggle {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-family: inherit;
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            align-self: flex-start;
+        }
+
+            .reference-toggle .arrow {
+                transition: transform 0.2s;
+                display: inline-block;
+            }
+
+            .reference-toggle.open .arrow {
+                transform: rotate(90deg);
+            }
+
+        .reference-table {
+            display: none;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+            .reference-table.show {
+                display: block;
+            }
+
+        .ref-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 6px;
+        }
+
+        .ref-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 4px;
+            border-radius: 8px;
+            background: var(--surface2);
+            cursor: pointer;
+            transition: background 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+            .ref-item:active {
+                background: var(--accent);
+            }
+
+        .ref-letter {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .ref-morse {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            letter-spacing: 2px;
+        }
+
+        /* --- Audio Feedback --- */
+        .audio-toggle {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            font-family: inherit;
+            font-size: 0.7rem;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .audio-toggle.active {
+                border-color: var(--accent);
+                color: var(--accent);
+            }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        @media (max-width: 400px) {
+            .key-dot, .key-dash, .key-delete {
+                width: 60px;
+                height: 56px;
+            }
+
+            #morseInput {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>⚡ Morse Code Input</h1>
+    <p class="subtitle">Type or tap — only dots, dashes &amp; spaces allowed</p>
+
+    <div class="container">
+
+        <!-- Input -->
+        <div class="input-wrapper">
+            <div class="input-label">Morse Sequence</div>
+            <input type="text"
+                   id="morseInput"
+                   inputmode="text"
+                   autocomplete="off"
+                   autocorrect="off"
+                   autocapitalize="off"
+                   spellcheck="false"
+                   placeholder=". .- -- --- .-. ..."
+                   pattern="[.\- /]*" />
+            <div class="char-count"><span id="charCount">0</span> characters</div>
+        </div>
+
+        <!-- Live Translation -->
+        <div class="translation-box">
+            <div class="translation-label">Translation</div>
+            <div class="translation-text empty" id="translation">Type morse code above…</div>
+        </div>
+
+        <!-- Custom Keyboard -->
+        <div class="keyboard-section">
+            <div class="keyboard-header">
+                <span class="keyboard-title">Morse Keyboard</span>
+                <button class="audio-toggle" id="audioToggle" onclick="toggleAudio()">
+                    <span id="audioIcon">🔇</span> Sound
+                </button>
+            </div>
+            <div class="keyboard-row">
+                <button class="key key-dot" onclick="insertChar('.')">·</button>
+                <button class="key key-dash" onclick="insertChar('-')">—</button>
+                <button class="key key-dot" onclick="insertChar('/')">/</button>
+                <button class="key key-delete" onclick="deleteChar()">⌫</button>
+            </div>
+            <div class="keyboard-row">
+                <button class="key key-space" onclick="insertChar(' ')">space (letter gap)</button>
+            </div>
+            <div class="keyboard-row">
+                <button class="key key-clear" onclick="clearAll()">Clear All</button>
+            </div>
+        </div>
+
+        <!-- Quick Reference -->
+        <button class="reference-toggle" id="refToggle" onclick="toggleReference()">
+            <span class="arrow">▸</span> Quick Reference
+        </button>
+        <div class="reference-table" id="refTable">
+            <div class="ref-grid" id="refGrid"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Morse Code Dictionary ---
+        const MORSE_MAP = {
+            'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
+            'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
+            'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
+            'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
+            'Y': '-.--', 'Z': '--..', '0': '-----', '1': '.----', '2': '..---',
+            '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...',
+            '8': '---..', '9': '----.',
+        };
+
+        const REVERSE_MORSE = {};
+        for (const [letter, code] of Object.entries(MORSE_MAP)) {
+            REVERSE_MORSE[code] = letter;
+        }
+
+        // --- Audio Context ---
+        let audioCtx = null;
+        let audioEnabled = false;
+
+        function toggleAudiotoggleAudio() {
+            audioEnabled = !audioEnabled;
+            const btn = document.getElementById('audioToggle');
+            const icon = document.getElementById('audioIcon');
+            btn.classList.toggle('active', audioEnabled);
+            icon.textContent = audioEnabled ? '🔊' : '🔇';
+        }
+
+        function playTone(duration) {
+            if (!audioEnabled) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = duration < 150 ? 600 : 800;
+            gain.gain.value = 0.08;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration / 1000);
+        }
+
+        // --- Input Handling ---
+        const input = document.getElementById('morseInput');
+        const charCount = document.getElementById('charCount');
+        const translation = document.getElementById('translation');
+
+        input.addEventListener('input', (e) => {
+            // Strip any non-morse characters
+            const cleaned = input.value.replace(/[^.\- \/]/g, '');
+            if (input.value !== cleaned) {
+                const cursorPos = input.selectionStart;
+                input.value = cleaned;
+                // Adjust cursor position
+                const diff = input.value.length - cleaned.length;
+                input.setSelectionRange(
+                    Math.max(0, cursorPos - (input.value.length > cleaned.length ? input.value.length - cleaned.length : 0)),
+                    Math.max(0, cursorPos - (input.value.length > cleaned.length ? input.value.length - cleaned.length : 0))
+                );
+            }
+            updateDisplay();
+        });
+
+        function insertChar(ch) {
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            const val = input.value;
+            input.value = val.slice(0, start) + ch + val.slice(end);
+            input.setSelectionRange(start + 1, start + 1);
+            input.focus();
+            updateDisplay();
+            if (ch === '.') playTone(100);
+            else if (ch === '-') playTone(300);
+        }
+
+        function deleteChar() {
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            const val = input.value;
+            if (start !== end) {
+                input.value = val.slice(0, start) + val.slice(end);
+                input.setSelectionRange(start, start);
+            } else if (start > 0) {
+                input.value = val.slice(0, start - 1) + val.slice(start);
+                input.setSelectionRange(start - 1, start - 1);
+            }
+            input.focus();
+            updateDisplay();
+        }
+
+        function clearAll() {
+            input.value = '';
+            input.focus();
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const val = input.value;
+            charCount.textContent = val.length;
+            translateMorse(val);
+        }
+
+        function translateMorse(morse) {
+            if (!morse.trim()) {
+                translation.textContent = 'Type morse code above…';
+                translation.classList.add('empty');
+                return;
+            }
+
+            translation.classList.remove('empty');
+
+            // Replace slashes with spaces, then split by whitespace
+            const letters = morse.replace(/\//g, ' ').split(/\s+/).filter(Boolean);
+            let result = '';
+            let hasErrors = false;
+
+            for (const letter of letters) {
+                if (REVERSE_MORSE[letter]) {
+                    result += REVERSE_MORSE[letter];
+                } else {
+                    result += '?';
+                    hasErrors = true;
+                }
+            }
+
+            translation.textContent = result;
+            translation.style.color = hasErrors ? 'var(--danger)' : 'var(--accent)';
+        }
+
+        // --- Reference Table ---
+        function buildReference() {
+            const grid = document.getElementById('refGrid');
+            for (const [letter, code] of Object.entries(MORSE_MAP)) {
+                const item = document.createElement('div');
+                item.className = 'ref-item';
+                item.innerHTML = `<span class="ref-letter">${letter}</span><span class="ref-morse">${code}</span>`;
+                item.addEventListener('click', () => {
+                    insertChar(code + ' ');
+                });
+                grid.appendChild(item);
+            }
+        }
+
+        function toggleReference() {
+            const table = document.getElementById('refTable');
+            const toggle = document.getElementById('refToggle');
+            table.classList.toggle('show');
+            toggle.classList.toggle('open');
+        }
+
+        buildReference();
+
+        // Prevent non-morse keys on physical keyboard
+        input.addEventListener('keydown', (e) => {
+            const allowed = ['.', '-', ' ', '/', 'Backspace', 'Delete', 'Enter', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+            if (!allowed.includes(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                e.preventDefault();
+            }
+        });
+    </script>
+
+</body>
+</html>

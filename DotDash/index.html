@@ -529,7 +529,16 @@
             <!-- ── Manual Morse Input ── -->
             <div class="manual-morse-section">
                 <label>Enter Morse Code Manually</label>
-                <textarea class="manual-morse-input" id="manualMorseInput" placeholder="e.g. .... . .-.. .-.. ---" rows="2"></textarea>
+                <textarea class="manual-morse-input" 
+                          id="manualMorseInput" 
+                          inputmode="text"
+                          autocomplete="off"
+                          autocorrect="off"
+                          autocapitalize="off"
+                          spellcheck="false"
+                          placeholder="e.g. .... . .-.. .-.. ---" 
+                          rows="2" >
+                </textarea>
                 <div class="hint">
                     Separate <strong>letters</strong> with a space &middot;
                     Separate <strong>words</strong> with <code>/</code> or three spaces &nbsp;
@@ -542,15 +551,17 @@
                 <div class="manual-decode-result" id="manualDecodeResult"></div>
             </div>
 
+            <div class="current-symbol" id="currentSymbol">&#8212;</div>
+            <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
+
+            <div class="detected-morse-label" id="decodeOutputLabel">&#128220; Detected Text</div>
+            <div class="decode-output" id="decodeOutput">
+                <span id="decodeText"></span><span class="cursor"></span>
+            </div>
             <!-- ── Detected Morse Code Display (shown during file decode) ── -->
             <div class="detected-morse-label" id="detectedMorseLabel">&#128220; Detected Morse Code</div>
             <div class="detected-morse-display" id="detectedMorseDisplay"></div>
 
-            <div class="current-symbol" id="currentSymbol">&#8212;</div>
-            <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
-            <div class="decode-output" id="decodeOutput">
-                <span id="decodeText"></span><span class="cursor"></span>
-            </div>
             <div class="settings-row">
                 <div class="setting">
                     <label>Sensitivity</label>
@@ -685,7 +696,7 @@
         }
         // ─── Audio Context & Analyzer (Shared) ───────────────────────────
         var audioCtx = null;
-        var analyser = null;
+        var analyzer = null;
         var isDecoding = false;
         var decodeRAF = null;
         var activeSource = null;
@@ -694,14 +705,14 @@
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             return audioCtx;
         }
-        function getAnalyser() {
+        function getAnalyzer() {
             var ctx = getAudioCtx();
-            if (!analyser || analyser.context !== ctx) {
-                analyser = ctx.createAnalyser();
-                analyser.fftSize = 512;
-                analyser.smoothingTimeConstant = 0.3;
+            if (!analyzer || analyzer.context !== ctx) {
+                analyzer = ctx.createanalyzer();
+                analyzer.fftSize = 512;
+                analyzer.smoothingTimeConstant = 0.3;
             }
-            return analyser;
+            return analyzer;
         }
         // ─── ENCODER / PLAYER ────────────────────────────────────────────
         var isPlaying = false;
@@ -902,6 +913,7 @@
             document.getElementById('detectedMorseDisplay').textContent = '';
             document.getElementById('detectedMorseDisplay').classList.remove('visible');
             document.getElementById('detectedMorseLabel').classList.remove('visible');
+            document.getElementById('decodeOutputLabel').classList.remove('visible');
         }
         // ─── FILE DECODER (Direct Buffer Analysis) ───────────────────────
         function decodeFileBuffer(buffer) {
@@ -979,7 +991,7 @@
                 .then(function (stream) {
                     micStream = stream;
                     var source = getAudioCtx().createMediaStreamSource(stream);
-                    source.connect(getAnalyser());
+                    source.connect(getAnalyzer());
                     activeSource = source;
                     isDecoding = true;
                     document.getElementById('btnListen').style.display = 'none';
@@ -1016,9 +1028,11 @@
                         // Show the detected Morse code above the decoded text
                         var morseDisplay = document.getElementById('detectedMorseDisplay');
                         var morseLabel = document.getElementById('detectedMorseLabel');
+                        var textLabel = document.getElementById('decodeOutputLabel');
                         morseDisplay.textContent = result.morseSequence || '(no morse detected)';
                         morseDisplay.classList.add('visible');
                         morseLabel.classList.add('visible');
+                        textLabel.classList.add('visible');
 
                         document.getElementById('decodeText').textContent = result.decodedText;
                         document.getElementById('decodeStatus').className = 'status-dot';
@@ -1056,7 +1070,7 @@
             if (!isDecoding) return;
             var canvas = document.getElementById('waveformCanvas');
             decoderState.canvasCtx = canvas.getContext('2d');
-            decoderState.waveformData = new Uint8Array(getAnalyser().frequencyBinCount);
+            decoderState.waveformData = new Uint8Array(getAnalyzer().frequencyBinCount);
             decodeLoop();
         }
         function decodeLoop() {
@@ -1064,7 +1078,7 @@
             var ds = decoderState;
             var now = performance.now();
             ds.waveformData.fill(0);
-            getAnalyser().getByteTimeDomainData(ds.waveformData);
+            getAnalyzer().getByteTimeDomainData(ds.waveformData);
             var energy = 0;
             for (var i = 0; i < ds.waveformData.length; i++) {
                 var v = (ds.waveformData[i] - 128) / 128;
@@ -1136,6 +1150,30 @@
             var barColor = energy > threshold ? '#2ecc71' : '#e74c3c';
             ctx.fillStyle = barColor + '33'; ctx.fillRect(0, 0, w * energyBar, 3);
         }
+
+        // 1. Attach to textarea instead of input
+        const morseArea = document.getElementById('manualMorseInput');
+
+        // 2. Real-time filtering (works identically on textarea)
+        morseArea.addEventListener('input', (e) => {
+          const cleaned = morseArea.value.replace(/[^.\- \/]/g, '');
+          if (morseArea.value !== cleaned) {
+            const cursorPos = morseArea.selectionStart;
+            morseArea.value = cleaned;
+            morseArea.setSelectionRange(cursorPos, cursorPos);
+          }
+          updateDisplay();
+        });
+
+        // 3. Keyboard blocker (allow Enter for new lines)
+        morseArea.addEventListener('keydown', (e) => {
+          const allowed = ['.', '-', ' ', '/', 'Enter', 'Backspace', 'Delete', 
+                           'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+          if (!allowed.includes(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+          }
+        });
+
     </script>
 </body>
 </html>
