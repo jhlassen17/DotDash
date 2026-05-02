@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Morse Code Encoder / Decoder - HANF</title>
+    <title>DotDash - Morse Code Encoder / Decoder</title>
     <style>
         :root {
             --bg: #0f1117;
@@ -98,253 +98,174 @@
                 border-color: var(--accent);
             }
 
+
+        .morse-display {
+            background: #12141c;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 14px;
+            margin: 12px 0;
+            min-height: 44px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.25rem;
+            letter-spacing: 3px;
+            color: #f1c40f;
+            word-break: break-all;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 20px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+
+        .setting {
+            flex: 1;
+            min-width: 160px;
+        }
+
+            .setting label {
+                display: block;
+                font-size: 0.8rem;
+                color: #999;
+                margin-bottom: 6px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: #6c63ff;
+            cursor: pointer;
+        }
+
+        .val {
+            font-size: 0.85rem;
+            color: #6c63ff;
+            font-weight: 600;
+        }
+
         .btn-row {
             display: flex;
             gap: 10px;
-            margin-top: 12px;
+            margin: 16px 0;
             flex-wrap: wrap;
         }
 
         button {
-            padding: 10px 22px;
+            padding: 12px 22px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-family: inherit;
         }
 
-            button:active {
-                transform: scale(0.97);
+            button:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
             }
 
         .btn-encode {
-            background: var(--accent);
-            color: white;
+            background: linear-gradient(135deg, #6c63ff, #5a52d5);
+            color: #fff;
         }
 
-            .btn-encode:hover {
-                background: #5a52e0;
-                box-shadow: 0 0 20px var(--accent-glow);
-            }
-
-            .btn-encode:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
+            .btn-encode:hover:not(:disabled) {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 15px rgba(108,99,255,0.4);
             }
 
         .btn-download {
-            background: var(--yellow);
-            color: #1a1d27;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: #fff;
         }
 
-            .btn-download:hover {
-                background: #d4ac0d;
-                box-shadow: 0 0 20px #f1c40f44;
-            }
-
-            .btn-download:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
+            .btn-download:hover:not(:disabled) {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 15px rgba(46,204,113,0.4);
             }
 
         .btn-decode {
-            background: var(--green);
-            color: white;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: #fff;
         }
 
-            .btn-decode:hover {
-                background: #27ae60;
-                box-shadow: 0 0 20px #2ecc7144;
+            .btn-decode:hover:not(:disabled) {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 15px rgba(231,76,60,0.4);
             }
 
         .btn-stop {
-            background: var(--red);
-            color: white;
+            background: #555;
+            color: #fff;
         }
 
             .btn-stop:hover {
-                background: #c0392b;
+                background: #666;
             }
 
         .btn-clear {
-            background: var(--surface2);
-            color: var(--text-dim);
-            border: 1px solid var(--border);
+            background: #333;
+            color: #ccc;
         }
 
             .btn-clear:hover {
-                color: var(--text);
-                border-color: var(--text-dim);
+                background: #444;
             }
 
-        .morse-display {
-            font-family: 'Courier New', monospace;
-            font-size: 1.6rem;
-            letter-spacing: 4px;
-            color: var(--yellow);
-            min-height: 48px;
-            padding: 14px;
-            background: var(--surface2);
-            border-radius: 8px;
-            word-break: break-all;
-            line-height: 1.6;
-            margin-top: 12px;
-            border: 1px solid var(--border);
+        .btn-manual-decode {
+            background: linear-gradient(135deg, #f1c40f, #e67e22);
+            color: #1a1d27;
         }
+
+            .btn-manual-decode:hover:not(:disabled) {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 15px rgba(241,196,15,0.4);
+            }
 
         .status-bar {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 16px;
-            background: var(--surface2);
-            border-radius: 8px;
+            gap: 8px;
             margin-top: 12px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            color: #888;
         }
 
         .status-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: var(--text-dim);
-            flex-shrink: 0;
+            background: #555;
             transition: background 0.3s;
         }
 
             .status-dot.active {
-                background: var(--green);
-                box-shadow: 0 0 8px var(--green);
-                animation: pulse 1s infinite;
+                background: #2ecc71;
+                box-shadow: 0 0 8px #2ecc71;
             }
 
             .status-dot.playing {
-                background: var(--yellow);
-                box-shadow: 0 0 8px var(--yellow);
-                animation: pulse 0.5s infinite;
+                background: #f1c40f;
+                box-shadow: 0 0 8px #f1c40f;
             }
 
             .status-dot.rendering {
-                background: var(--accent);
-                box-shadow: 0 0 8px var(--accent);
-                animation: pulse 0.3s infinite;
+                background: #6c63ff;
+                box-shadow: 0 0 8px #6c63ff;
             }
-
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.4;
-            }
-        }
-
-        .settings-row {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            margin-top: 12px;
-        }
-
-        .setting {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            flex: 1;
-            min-width: 140px;
-        }
-
-            .setting label {
-                font-size: 0.8rem;
-                color: var(--text-dim);
-                text-transform: uppercase;
-                letter-spacing: 1px;
-            }
-
-            .setting input[type="range"] {
-                width: 100%;
-                accent-color: var(--accent);
-            }
-
-            .setting .val {
-                font-size: 0.85rem;
-                color: var(--accent);
-                font-weight: 600;
-            }
-
-        .reference {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            margin-top: 4px;
-        }
-
-            .reference table {
-                width: 100%;
-                border-collapse: collapse;
-            }
-
-            .reference td {
-                padding: 3px 8px;
-                border-bottom: 1px solid var(--border);
-            }
-
-                .reference td:first-child {
-                    font-weight: 700;
-                    color: var(--text);
-                    width: 40px;
-                    text-align: center;
-                }
-
-                .reference td:last-child {
-                    font-family: 'Courier New', monospace;
-                    color: var(--yellow);
-                    letter-spacing: 2px;
-                }
-
-        .decode-output {
-            font-family: 'Courier New', monospace;
-            font-size: 1.2rem;
-            padding: 14px;
-            background: var(--surface2);
-            border-radius: 8px;
-            min-height: 50px;
-            border: 1px solid var(--border);
-            margin-top: 12px;
-            word-break: break-all;
-        }
-
-            .decode-output .cursor {
-                display: inline-block;
-                width: 2px;
-                height: 1.2em;
-                background: var(--accent);
-                animation: blink 1s infinite;
-                vertical-align: text-bottom;
-            }
-
-        @keyframes blink {
-            0%, 100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0;
-            }
-        }
 
         .current-symbol {
-            font-size: 3rem;
             text-align: center;
-            padding: 20px;
-            color: var(--yellow);
+            font-size: 2.5rem;
             font-family: 'Courier New', monospace;
-            min-height: 90px;
+            color: #f1c40f;
+            margin: 10px 0;
+            min-height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -352,58 +273,188 @@
 
         .waveform-canvas {
             width: 100%;
-            height: 60px;
-            border-radius: 8px;
-            background: var(--surface2);
-            margin-top: 12px;
+            height: 80px;
+            border-radius: 10px;
+            margin: 10px 0;
+            background: #12141c;
+        }
+
+        .decode-output {
+            background: #12141c;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 14px;
+            min-height: 50px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.1em;
+            background: #f1c40f;
+            animation: blink 1s infinite;
+            vertical-align: text-bottom;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%,50% {
+                opacity: 1;
+            }
+
+            51%,100% {
+                opacity: 0;
+            }
         }
 
         .file-input-wrapper {
-            margin-top: 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            margin: 14px 0;
         }
 
-            .file-input-wrapper input[type="file"] {
-                display: none;
-            }
-
         .file-label {
-            padding: 10px 18px;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            display: block;
+            padding: 12px 18px;
+            background: #12141c;
+            border: 1px dashed #444;
+            border-radius: 10px;
+            text-align: center;
             cursor: pointer;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
+            transition: border-color 0.2s;
+            color: #aaa;
         }
 
             .file-label:hover {
-                border-color: var(--accent);
-                color: var(--text);
+                border-color: #6c63ff;
+                color: #ccc;
             }
 
-        @media (max-width: 600px) {
-            h1 {
-                font-size: 1.5rem;
+        input[type="file"] {
+            display: none;
+        }
+
+        .reference {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 6px;
+        }
+
+            .reference table {
+                width: 100%;
             }
 
-            .card {
-                padding: 16px;
+            .reference td {
+                padding: 6px 8px;
+                font-size: 0.85rem;
+                border-bottom: 1px solid #222;
             }
 
-            .morse-display {
-                font-size: 1.2rem;
+                .reference td:first-child {
+                    font-weight: 700;
+                    color: #6c63ff;
+                    width: 30px;
+                    text-align: center;
+                }
+
+                .reference td:last-child {
+                    font-family: 'Courier New', monospace;
+                    letter-spacing: 2px;
+                    color: #f1c40f;
+                }
+
+        /* ── Manual Morse Input Section ── */
+        .manual-morse-section {
+            margin: 16px 0;
+            padding: 18px;
+            background: #12141c;
+            border: 1px solid #333;
+            border-radius: 12px;
+        }
+
+            .manual-morse-section label {
+                display: block;
+                font-size: 0.8rem;
+                color: #999;
+                margin-bottom: 8px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
             }
+
+            .manual-morse-section .hint {
+                font-size: 0.75rem;
+                color: #666;
+                margin-top: 6px;
+                line-height: 1.5;
+            }
+
+                .manual-morse-section .hint code {
+                    background: #1a1d27;
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    color: #f1c40f;
+                    font-family: 'Courier New', monospace;
+                }
+
+        .manual-morse-input {
+            width: 100%;
+            background: #0f1117;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: #f1c40f;
+            font-size: 1.15rem;
+            padding: 12px;
+            resize: vertical;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+            min-height: 60px;
+            transition: border-color 0.2s;
+        }
+
+            .manual-morse-input:focus {
+                border-color: #f1c40f;
+            }
+
+            .manual-morse-input::placeholder {
+                color: #555;
+                letter-spacing: 1px;
+            }
+
+        .manual-decode-result {
+            background: #1a1d27;
+            border: 1px solid #2ecc71;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            min-height: 40px;
+            font-size: 1.1rem;
+            color: #2ecc71;
+            font-weight: 600;
+            word-wrap: break-word;
+            display: none;
+        }
+
+            .manual-decode-result.visible {
+                display: block;
+            }
+
+            .manual-decode-result .error {
+                color: #e74c3c;
+                font-weight: 400;
+                font-size: 0.9rem;
+            }
+
+        .manual-btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>&#9889; Morse Code</h1>
+    <h1>DotDash - &#9889; Morse Code</h1>
     <p class="subtitle">Encode text to audio &middot; Decode microphone or audio files to text</p>
     <div class="container">
         <!-- ENCODE SECTION -->
@@ -438,9 +489,27 @@
                 <span id="encodeStatusText">Ready</span>
             </div>
         </div>
+
         <!-- DECODE SECTION -->
         <div class="card">
             <h2><span class="icon">&#127907;</span> Decode &mdash; Morse to Text</h2>
+
+            <!-- ── Manual Morse Input ── -->
+            <div class="manual-morse-section">
+                <label>Enter Morse Code Manually</label>
+                <textarea class="manual-morse-input" id="manualMorseInput" placeholder="e.g. .... . .-.. .-.. ---" rows="2"></textarea>
+                <div class="hint">
+                    Separate <strong>letters</strong> with a space &middot;
+                    Separate <strong>words</strong> with <code>/</code> or three spaces &nbsp;
+                    &middot; Only <code>.</code> <code>-</code> <code>/</code> <code> </code> allowed
+                </div>
+                <div class="manual-btn-row">
+                    <button class="btn-manual-decode" onclick="manualDecodeMorse()">&#9986; Decode to Text</button>
+                    <button class="btn-clear" onclick="clearManualMorse()">&#128465; Clear</button>
+                </div>
+                <div class="manual-decode-result" id="manualDecodeResult"></div>
+            </div>
+
             <div class="current-symbol" id="currentSymbol">&#8212;</div>
             <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
             <div class="decode-output" id="decodeOutput">
@@ -472,499 +541,557 @@
                 <span id="decodeStatusText">Ready</span>
             </div>
         </div>
+
         <!-- REFERENCE -->
         <div class="card">
             <h2><span class="icon">&#128218;</span> Morse Code Reference</h2>
             <div class="reference" id="refTable"></div>
         </div>
     </div>
+
     <script>
-        // ─── Morse Code Map ──────────────────────────────────────────────
-        var MORSE_MAP = {};
-        MORSE_MAP['A'] = '.-'; MORSE_MAP['B'] = '-...'; MORSE_MAP['C'] = '-.-.'; MORSE_MAP['D'] = '-..';
-        MORSE_MAP['E'] = '.'; MORSE_MAP['F'] = '..-.'; MORSE_MAP['G'] = '--.'; MORSE_MAP['H'] = '....';
-        MORSE_MAP['I'] = '..'; MORSE_MAP['J'] = '.---'; MORSE_MAP['K'] = '-.-'; MORSE_MAP['L'] = '.-..';
-        MORSE_MAP['M'] = '--'; MORSE_MAP['N'] = '-.'; MORSE_MAP['O'] = '---'; MORSE_MAP['P'] = '.--.';
-        MORSE_MAP['Q'] = '--.-'; MORSE_MAP['R'] = '.-.'; MORSE_MAP['S'] = '...'; MORSE_MAP['T'] = '-';
-        MORSE_MAP['U'] = '..-'; MORSE_MAP['V'] = '...-'; MORSE_MAP['W'] = '.--'; MORSE_MAP['X'] = '-..-';
-        MORSE_MAP['Y'] = '-.--'; MORSE_MAP['Z'] = '--..';
-        MORSE_MAP['0'] = '-----'; MORSE_MAP['1'] = '.----'; MORSE_MAP['2'] = '..---'; MORSE_MAP['3'] = '...--';
-        MORSE_MAP['4'] = '....-'; MORSE_MAP['5'] = '.....'; MORSE_MAP['6'] = '-....'; MORSE_MAP['7'] = '--...';
-        MORSE_MAP['8'] = '---..'; MORSE_MAP['9'] = '----.';
-        MORSE_MAP['.'] = '.-.-.-'; MORSE_MAP[','] = '--..--'; MORSE_MAP['?'] = '..--..';
-        MORSE_MAP["'"] = '.'; MORSE_MAP['!'] = '-.-.--'; MORSE_MAP['/'] = '-..-.';
-        MORSE_MAP['('] = '-.--.'; MORSE_MAP[')'] = '-.--.-'; MORSE_MAP['&'] = '.-...';
-        MORSE_MAP[':'] = '---...'; MORSE_MAP[';'] = '-.-.-.'; MORSE_MAP['='] = '-...-';
-        MORSE_MAP['+'] = '.-.-.'; MORSE_MAP['-'] = '-....-'; MORSE_MAP['_'] = '..--.-';
-        MORSE_MAP['"'] = '.-..-.'; MORSE_MAP['$'] = '...-..-'; MORSE_MAP['@'] = '.--.-.';
-        var REVERSE_MORSE = {};
-        for (var key in MORSE_MAP) {
-            if (!(MORSE_MAP[key] in REVERSE_MORSE)) REVERSE_MORSE[MORSE_MAP[key]] = key;
-        }
+                // ─── Morse Code Map ──────────────────────────────────────────────
+                var MORSE_MAP = {};
+                MORSE_MAP['A'] = '.-'; MORSE_MAP['B'] = '-...'; MORSE_MAP['C'] = '-.-.'; MORSE_MAP['D'] = '-..';
+                MORSE_MAP['E'] = '.'; MORSE_MAP['F'] = '..-.'; MORSE_MAP['G'] = '--.'; MORSE_MAP['H'] = '....';
+                MORSE_MAP['I'] = '..'; MORSE_MAP['J'] = '.---'; MORSE_MAP['K'] = '-.-'; MORSE_MAP['L'] = '.-..';
+                MORSE_MAP['M'] = '--'; MORSE_MAP['N'] = '-.'; MORSE_MAP['O'] = '---'; MORSE_MAP['P'] = '.--.';
+                MORSE_MAP['Q'] = '--.-'; MORSE_MAP['R'] = '.-.'; MORSE_MAP['S'] = '...'; MORSE_MAP['T'] = '-';
+                MORSE_MAP['U'] = '..-'; MORSE_MAP['V'] = '...-'; MORSE_MAP['W'] = '.--'; MORSE_MAP['X'] = '-..-';
+                MORSE_MAP['Y'] = '-.--'; MORSE_MAP['Z'] = '--..';
+                MORSE_MAP['0'] = '-----'; MORSE_MAP['1'] = '.----'; MORSE_MAP['2'] = '..---'; MORSE_MAP['3'] = '...--';
+                MORSE_MAP['4'] = '....-'; MORSE_MAP['5'] = '.....'; MORSE_MAP['6'] = '-....'; MORSE_MAP['7'] = '--...';
+                MORSE_MAP['8'] = '---..'; MORSE_MAP['9'] = '----.';
+                MORSE_MAP['.'] = '.-.-.-'; MORSE_MAP[','] = '--..--'; MORSE_MAP['?'] = '..--..';
+                MORSE_MAP["'"] = '.'; MORSE_MAP['!'] = '-.-.--'; MORSE_MAP['/'] = '-..-.';
+                MORSE_MAP['('] = '-.--.'; MORSE_MAP[')'] = '-.--.-'; MORSE_MAP['&'] = '.-...';
+                MORSE_MAP[':'] = '---...'; MORSE_MAP[';'] = '-.-.-.'; MORSE_MAP['='] = '-...-';
+                MORSE_MAP['+'] = '.-.-.'; MORSE_MAP['-'] = '-....-'; MORSE_MAP['_'] = '..--.-';
+                MORSE_MAP['"'] = '.-..-.'; MORSE_MAP['$'] = '...-..-'; MORSE_MAP['@'] = '.--.-.';
+                var REVERSE_MORSE = {};
+                for (var key in MORSE_MAP) {
+                    if (!(MORSE_MAP[key] in REVERSE_MORSE)) REVERSE_MORSE[MORSE_MAP[key]] = key;
+                }
 
-        // ─── Build Reference Table ───────────────────────────────────────
-        (function () {
-            var el = document.getElementById('refTable');
-            var html = '<table>';
-            for (var k in MORSE_MAP) html += '<tr><td>' + k + '</td><td>' + MORSE_MAP[k] + '</td></tr>';
-            html += '</table>';
-            el.innerHTML = html;
-        })();
+                // ─── Build Reference Table ───────────────────────────────────────
+                (function () {
+                    var el = document.getElementById('refTable');
+                    var html = '<table>';
+                    for (var k in MORSE_MAP) html += '<tr><td>' + k + '</td><td>' + MORSE_MAP[k] + '</td></tr>';
+                    html += '</table>';
+                    el.innerHTML = html;
+                })();
 
-        // ─── Live Preview ────────────────────────────────────────────────
-        var encodeInput = document.getElementById('encodeInput');
-        var morsePreview = document.getElementById('morsePreview');
-        encodeInput.addEventListener('input', function () {
-            var text = encodeInput.value.toUpperCase();
-            var parts = [];
-            for (var i = 0; i < text.length; i++) {
-                if (MORSE_MAP[text[i]]) parts.push(MORSE_MAP[text[i]]);
-            }
-            morsePreview.textContent = parts.join(' ') || '';
-        });
-        encodeInput.dispatchEvent(new Event('input'));
+                // ─── Live Preview ────────────────────────────────────────────────
+                var encodeInput = document.getElementById('encodeInput');
+                var morsePreview = document.getElementById('morsePreview');
+                encodeInput.addEventListener('input', function () {
+                    var text = encodeInput.value.toUpperCase();
+                    var parts = [];
+                    for (var i = 0; i < text.length; i++) {
+                        if (MORSE_MAP[text[i]]) parts.push(MORSE_MAP[text[i]]);
+                    }
+                    morsePreview.textContent = parts.join(' ') || '';
+                });
+                encodeInput.dispatchEvent(new Event('input'));
 
-        // ─── Settings Display ────────────────────────────────────────────
-        function bindSlider(sid, vid, suf) {
-            suf = suf || '';
-            var s = document.getElementById(sid), v = document.getElementById(vid);
-            s.addEventListener('input', function () { v.textContent = s.value + suf; });
-        }
-        bindSlider('dotDuration', 'dotDurationVal', ' ms');
-        bindSlider('toneFreq', 'toneFreqVal', ' Hz');
-        bindSlider('volume', 'volumeVal', '%');
-        bindSlider('sensitivity', 'sensitivityVal', '');
-        bindSlider('dotEstimate', 'dotEstimateVal', ' ms');
+                // ─── Settings Display ────────────────────────────────────────────
+                function bindSlider(sid, vid, suf) {
+                    suf = suf || '';
+                    var s = document.getElementById(sid), v = document.getElementById(vid);
+                    s.addEventListener('input', function () { v.textContent = s.value + suf; });
+                }
+                bindSlider('dotDuration', 'dotDurationVal', ' ms');
+                bindSlider('toneFreq', 'toneFreqVal', ' Hz');
+                bindSlider('volume', 'volumeVal', '%');
+                bindSlider('sensitivity', 'sensitivityVal', '');
+                bindSlider('dotEstimate', 'dotEstimateVal', ' ms');
 
-        // ─── Audio Context & Analyzer (Shared) ───────────────────────────
-        var audioCtx = null;
-        var analyser = null;
-        var isDecoding = false;
-        var decodeRAF = null;
-        var activeSource = null;
-        var micStream = null;
-        function getAudioCtx() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            return audioCtx;
-        }
-        function getAnalyser() {
-            var ctx = getAudioCtx();
-            if (!analyser || analyser.context !== ctx) {
-                analyser = ctx.createAnalyser();
-                analyser.fftSize = 512;
-                analyser.smoothingTimeConstant = 0.3;
-            }
-            return analyser;
-        }
+                // ─── Manual Morse Decode ─────────────────────────────────────────
+                function manualDecodeMorse() {
+                    var raw = document.getElementById('manualMorseInput').value.trim();
+                    var resultEl = document.getElementById('manualDecodeResult');
 
-        // ─── ENCODER / PLAYER ────────────────────────────────────────────
-        var isPlaying = false;
-        var playAbort = false;
-        function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-        function playMorse() {
-            if (isPlaying) return;
-            isPlaying = true; playAbort = false;
-            var btn = document.getElementById('btnPlay');
-            btn.disabled = true;
-            var statusDot = document.getElementById('encodeStatus');
-            var statusText = document.getElementById('encodeStatusText');
-            statusDot.className = 'status-dot playing';
-            statusText.textContent = 'Playing...';
-            var ctx = getAudioCtx();
-            var dotDur = parseInt(document.getElementById('dotDuration').value) / 1000;
-            var freq = parseInt(document.getElementById('toneFreq').value);
-            var vol = parseInt(document.getElementById('volume').value) / 100;
-            var text = encodeInput.value.toUpperCase();
-            var i = 0;
-            function processNextChar() {
-                if (playAbort || i >= text.length) { finishPlaying(); return; }
-                var ch = text[i];
-                if (ch === ' ') { i++; setTimeout(processNextChar, dotDur * 7 * 1000); return; }
-                var morse = MORSE_MAP[ch];
-                if (!morse) { i++; processNextChar(); return; }
-                var symIdx = 0;
-                function playNextSymbol() {
-                    if (playAbort || symIdx >= morse.length) {
-                        i++;
-                        if (i < text.length) setTimeout(processNextChar, dotDur * 3 * 1000);
-                        else finishPlaying();
+                    if (!raw) {
+                        resultEl.innerHTML = '<span class="error">Please enter some Morse code.</span>';
+                        resultEl.classList.add('visible');
                         return;
                     }
-                    var sym = morse[symIdx];
-                    var dur = (sym === '.') ? dotDur : dotDur * 3;
-                    var osc = ctx.createOscillator();
-                    var gain = ctx.createGain();
-                    osc.type = 'sine'; osc.frequency.value = freq;
-                    gain.gain.value = vol;
-                    osc.connect(gain); gain.connect(ctx.destination);
-                    osc.start();
-                    setTimeout(function () {
-                        osc.stop(); osc.disconnect(); gain.disconnect();
-                        symIdx++;
-                        if (symIdx < morse.length) setTimeout(playNextSymbol, dotDur * 1000);
-                        else {
-                            i++;
-                            if (i < text.length) setTimeout(processNextChar, dotDur * 3 * 1000);
-                            else finishPlaying();
-                        }
-                    }, dur * 1000);
-                }
-                playNextSymbol();
-            }
-            function finishPlaying() {
-                isPlaying = false; playAbort = false;
-                btn.disabled = false; statusDot.className = 'status-dot';
-                statusText.textContent = 'Ready';
-            }
-            processNextChar();
-        }
-        function stopPlaying() {
-            playAbort = true; isPlaying = false;
-            document.getElementById('btnPlay').disabled = false;
-            document.getElementById('encodeStatus').className = 'status-dot';
-            document.getElementById('encodeStatusText').textContent = 'Stopped';
-        }
 
-        // ─── WAV DOWNLOAD ────────────────────────────────────────────────
-        function downloadMorseWAV() {
-            var btn = document.getElementById('btnDownload');
-            var statusDot = document.getElementById('encodeStatus');
-            var statusText = document.getElementById('encodeStatusText');
-            btn.disabled = true;
-            statusDot.className = 'status-dot rendering';
-            statusText.textContent = 'Rendering audio...';
-            var dotDur = parseInt(document.getElementById('dotDuration').value) / 1000;
-            var freq = parseInt(document.getElementById('toneFreq').value);
-            var vol = parseInt(document.getElementById('volume').value) / 100;
-            var text = encodeInput.value.toUpperCase();
-            var totalDur = 0;
-            for (var ci = 0; ci < text.length; ci++) {
-                var ch = text[ci];
-                if (ch === ' ') { totalDur += dotDur * 7; continue; }
-                var morse = MORSE_MAP[ch];
-                if (!morse) continue;
-                for (var si = 0; si < morse.length; si++) {
-                    totalDur += (morse[si] === '.') ? dotDur : dotDur * 3;
-                    if (si < morse.length - 1) totalDur += dotDur;
-                }
-                if (ci < text.length - 1) {
-                    var nextCh = text[ci + 1];
-                    if (nextCh !== ' ') totalDur += dotDur * 3;
-                }
-            }
-            totalDur += 0.1;
-            var sampleRate = 44100;
-            var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDur, sampleRate);
-            var currentTime = 0;
-            var masterGain = offlineCtx.createGain();
-            masterGain.gain.value = vol;
-            masterGain.connect(offlineCtx.destination);
-            for (var ci = 0; ci < text.length; ci++) {
-                var ch = text[ci];
-                if (ch === ' ') { currentTime += dotDur * 7; continue; }
-                var morse = MORSE_MAP[ch];
-                if (!morse) continue;
-                for (var si = 0; si < morse.length; si++) {
-                    var sym = morse[si];
-                    var dur = (sym === '.') ? dotDur : dotDur * 3;
-                    var osc = offlineCtx.createOscillator();
-                    var gain = offlineCtx.createGain();
-                    osc.type = 'sine'; osc.frequency.value = freq;
-                    gain.gain.setValueAtTime(vol, currentTime);
-                    gain.gain.setValueAtTime(0, currentTime + dur);
-                    osc.connect(gain); gain.connect(masterGain);
-                    osc.start(currentTime); osc.stop(currentTime + dur);
-                    currentTime += dur;
-                    if (si < morse.length - 1) currentTime += dotDur;
-                }
-                if (ci < text.length - 1) {
-                    var nextCh = text[ci + 1];
-                    if (nextCh !== ' ') currentTime += dotDur * 3;
-                }
-            }
-            offlineCtx.startRendering().then(function (renderedBuffer) {
-                var wavBlob = audioBufferToWav(renderedBuffer);
-                var url = URL.createObjectURL(wavBlob);
-                var a = document.createElement('a');
-                a.href = url;
-                a.download = 'morse_' + text.replace(/[^A-Z0-9]/g, '_').substring(0, 30) + '.wav';
-                document.body.appendChild(a); a.click();
-                document.body.removeChild(a); URL.revokeObjectURL(url);
-                btn.disabled = false; statusDot.className = 'status-dot';
-                statusText.textContent = 'Downloaded!';
-                setTimeout(function () { if (statusText.textContent === 'Downloaded!') statusText.textContent = 'Ready'; }, 2000);
-            }).catch(function (err) {
-                btn.disabled = false; statusDot.className = 'status-dot';
-                statusText.textContent = 'Error: ' + err.message; console.error(err);
-            });
-        }
-        function audioBufferToWav(buffer) {
-            var numChannels = buffer.numberOfChannels;
-            var sampleRate = buffer.sampleRate;
-            var channelData = buffer.getChannelData(0);
-            if (numChannels > 1) {
-                var mixed = new Float32Array(channelData.length);
-                for (var c = 0; c < numChannels; c++) {
-                    var ch = buffer.getChannelData(c);
-                    for (var i = 0; i < ch.length; i++) mixed[i] += ch[i] / numChannels;
-                }
-                channelData = mixed; numChannels = 1;
-            }
-            var dataLength = channelData.length * 2;
-            var wavBuffer = new ArrayBuffer(44 + dataLength);
-            var view = new DataView(wavBuffer);
-            writeString(view, 0, 'RIFF'); view.setUint32(4, 36 + dataLength, true);
-            writeString(view, 8, 'WAVE');
-            writeString(view, 12, 'fmt '); view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true); view.setUint16(22, numChannels, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * numChannels * 2, true);
-            view.setUint16(32, numChannels * 2, true); view.setUint16(34, 16, true);
-            writeString(view, 36, 'data'); view.setUint32(40, dataLength, true);
-            var offset = 44;
-            for (var i = 0; i < channelData.length; i++) {
-                var sample = Math.max(-1, Math.min(1, channelData[i]));
-                sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
-                view.setInt16(offset, sample, true); offset += 2;
-            }
-            return new Blob([wavBuffer], { type: 'audio/wav' });
-        }
-        function writeString(view, offset, string) {
-            for (var i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
-        }
-
-        // ─── DECODER STATE & HELPERS ─────────────────────────────────────
-        var decoderState = {
-            symbolBuffer: '', decodedText: '', lastSignalEnd: 0,
-            inSignal: false, signalStart: 0, dotDurationEstimate: 150,
-            signalDurations: [], canvasCtx: null, waveformData: null
-        };
-        function morseToChar(morse) {
-            return REVERSE_MORSE[morse] || '[' + morse + ']';
-        }
-        function decodeSymbol(morse) {
-            decoderState.decodedText += morseToChar(morse);
-        }
-        function updateDecodeDisplay() {
-            document.getElementById('decodeText').textContent = decoderState.decodedText;
-        }
-        function clearDecode() {
-            decoderState.decodedText = '';
-            decoderState.symbolBuffer = '';
-            decoderState.signalDurations = [];
-            document.getElementById('decodeText').textContent = '';
-            document.getElementById('currentSymbol').textContent = '\u2014';
-        }
-
-        // ─── FILE DECODER (Direct Buffer Analysis) ───────────────────────
-        function decodeFileBuffer(buffer) {
-            var samples = buffer.getChannelData(0);
-            var sampleRate = buffer.sampleRate;
-            var windowMs = 20;
-            var windowSize = Math.floor(sampleRate * (windowMs / 1000));
-            var threshold = 0.05;
-            var state = 'silence';
-            var windowStart = 0;
-            var durations = [];
-            var decodedText = '';
-            var symbolBuffer = '';
-            var dotEst = 0.12;
-
-            for (var i = 0; i < samples.length; i += windowSize) {
-                var sum = 0;
-                var end = Math.min(i + windowSize, samples.length);
-                for (var j = i; j < end; j++) sum += samples[j] * samples[j];
-                var rms = Math.sqrt(sum / (end - i));
-                var newState = rms > threshold ? 'signal' : 'silence';
-                if (newState !== state) {
-                    durations.push({ type: state, dur: (i - windowStart) / sampleRate });
-                    state = newState; windowStart = i;
-                }
-            }
-            if (windowStart < samples.length) {
-                durations.push({ type: state, dur: (samples.length - windowStart) / sampleRate });
-            }
-
-            for (var k = 0; k < durations.length; k++) {
-                var seg = durations[k];
-                if (seg.type === 'signal') {
-                    var sym = (seg.dur < dotEst * 1.8) ? '.' : '-';
-                    symbolBuffer += sym;
-                    var est = (sym === '.') ? seg.dur : seg.dur / 3;
-                    dotEst = dotEst * 0.85 + est * 0.15;
-                } else {
-                    if (seg.dur >= dotEst * 7) {
-                        decodedText += morseToChar(symbolBuffer) + ' ';
-                        symbolBuffer = '';
-                    } else if (seg.dur >= dotEst * 3) {
-                        decodedText += morseToChar(symbolBuffer);
-                        symbolBuffer = '';
+                    // Validate: only dots, dashes, spaces, and slashes allowed
+                    if (!/^[\.\-\s\/]+$/.test(raw)) {
+                        resultEl.innerHTML = '<span class="error">Invalid characters. Only <code>.</code> <code>-</code> spaces and <code>/</code> are allowed.</span>';
+                        resultEl.classList.add('visible');
+                        return;
                     }
-                }
-            }
-            if (symbolBuffer.length > 0) decodedText += morseToChar(symbolBuffer);
-            return decodedText;
-        }
 
-        // ─── DECODER CONTROLS ────────────────────────────────────────────
-        function startListening() {
-            if (isDecoding) return;
-            stopDecoding();
-            navigator.mediaDevices.getUserMedia({ audio: true })
-                .then(function (stream) {
-                    micStream = stream;
-                    var source = getAudioCtx().createMediaStreamSource(stream);
-                    source.connect(getAnalyser());
-                    activeSource = source;
-                    isDecoding = true;
-                    document.getElementById('btnListen').style.display = 'none';
-                    document.getElementById('btnStopDecode').style.display = '';
-                    document.getElementById('decodeStatus').className = 'status-dot active';
-                    document.getElementById('decodeStatusText').textContent = 'Listening to mic...';
-                    decoderState.dotDurationEstimate = parseInt(document.getElementById('dotEstimate').value);
-                    decoderState.signalDurations = []; decoderState.symbolBuffer = '';
-                    decoderState.decodedText = ''; decoderState.inSignal = false;
-                    decoderState.lastSignalEnd = 0;
+                    // Normalize: replace / with multiple spaces, then collapse spaces
+                    var normalized = raw.replace(/\//g, '   ');
+                    // Split into words by 3+ consecutive spaces
+                    var words = normalized.split(/\s{3,}/).filter(function (w) { return w.length > 0; });
+
+                    var decodedWords = [];
+                    var hasError = false;
+
+                    for (var w = 0; w < words.length; w++) {
+                        var letters = words[w].split(/\s+/).filter(function (l) { return l.length > 0; });
+                        var decodedWord = '';
+
+                        for (var l = 0; l < letters.length; l++) {
+                            var morse = letters[l];
+                            if (morse in REVERSE_MORSE) {
+                                decodedWord += REVERSE_MORSE[morse];
+                            } else {
+                                decodedWord += '[' + morse + ']';
+                                hasError = true;
+                            }
+                        }
+
+                        decodedWords.push(decodedWord);
+                    }
+
+                    var output = decodedWords.join(' ');
+                    if (hasError) {
+                        resultEl.innerHTML = output + '<br><span class="error" style="margin-top:6px;display:inline-block;">Unknown Morse sequences shown in [brackets].</span>';
+                    } else {
+                        resultEl.innerHTML = output;
+                    }
+                    resultEl.classList.add('visible');
+                }
+
+                function clearManualMorse() {
+                    document.getElementById('manualMorseInput').value = '';
+                    var resultEl = document.getElementById('manualDecodeResult');
+                    resultEl.innerHTML = '';
+                    resultEl.classList.remove('visible');
+                }
+
+                // ─── Audio Context & Analyzer (Shared) ───────────────────────────
+                var audioCtx = null;
+                var analyser = null;
+                var isDecoding = false;
+                var decodeRAF = null;
+                var activeSource = null;
+                var micStream = null;
+                function getAudioCtx() {
+                    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    return audioCtx;
+                }
+                function getAnalyser() {
+                    var ctx = getAudioCtx();
+                    if (!analyser || analyser.context !== ctx) {
+                        analyser = ctx.createAnalyser();
+                        analyser.fftSize = 512;
+                        analyser.smoothingTimeConstant = 0.3;
+                    }
+                    return analyser;
+                }
+
+                // ─── ENCODER / PLAYER ────────────────────────────────────────────
+                var isPlaying = false;
+                var playAbort = false;
+                function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+                function playMorse() {
+                    if (isPlaying) return;
+                    isPlaying = true; playAbort = false;
+                    var btn = document.getElementById('btnPlay');
+                    btn.disabled = true;
+                    var statusDot = document.getElementById('encodeStatus');
+                    var statusText = document.getElementById('encodeStatusText');
+                    statusDot.className = 'status-dot playing';
+                    statusText.textContent = 'Playing...';
+                    var ctx = getAudioCtx();
+                    var dotDur = parseInt(document.getElementById('dotDuration').value) / 1000;
+                    var freq = parseInt(document.getElementById('toneFreq').value);
+                    var vol = parseInt(document.getElementById('volume').value) / 100;
+                    var text = encodeInput.value.toUpperCase();
+                    var i = 0;
+                    function processNextChar() {
+                        if (playAbort || i >= text.length) { finishPlaying(); return; }
+                        var ch = text[i];
+                        if (ch === ' ') { i++; setTimeout(processNextChar, dotDur * 7 * 1000); return; }
+                        var morse = MORSE_MAP[ch];
+                        if (!morse) { i++; processNextChar(); return; }
+                        var symIdx = 0;
+                        function playNextSymbol() {
+                            if (playAbort || symIdx >= morse.length) {
+                                i++;
+                                if (i < text.length) setTimeout(processNextChar, dotDur * 3 * 1000);
+                                else finishPlaying();
+                                return;
+                            }
+                            var sym = morse[symIdx];
+                            var dur = (sym === '.') ? dotDur : dotDur * 3;
+                            var osc = ctx.createOscillator();
+                            var gain = ctx.createGain();
+                            osc.type = 'sine'; osc.frequency.value = freq;
+                            gain.gain.value = vol;
+                            osc.connect(gain); gain.connect(ctx.destination);
+                            osc.start();
+                            setTimeout(function () {
+                                osc.stop(); osc.disconnect(); gain.disconnect();
+                                symIdx++;
+                                if (symIdx < morse.length) setTimeout(playNextSymbol, dotDur * 1000);
+                                else {
+                                    i++;
+                                    if (i < text.length) setTimeout(processNextChar, dotDur * 3 * 1000);
+                                    else finishPlaying();
+                                }
+                            }, dur * 1000);
+                        }
+                        playNextSymbol();
+                    }
+                    function finishPlaying() {
+                        isPlaying = false; playAbort = false;
+                        btn.disabled = false; statusDot.className = 'status-dot';
+                        statusText.textContent = 'Ready';
+                    }
+                    processNextChar();
+                }
+                function stopPlaying() {
+                    playAbort = true; isPlaying = false;
+                    document.getElementById('btnPlay').disabled = false;
+                    document.getElementById('encodeStatus').className = 'status-dot';
+                    document.getElementById('encodeStatusText').textContent = 'Stopped';
+                }
+
+                // ─── WAV DOWNLOAD ────────────────────────────────────────────────
+                function downloadMorseWAV() {
+                    var btn = document.getElementById('btnDownload');
+                    var statusDot = document.getElementById('encodeStatus');
+                    var statusText = document.getElementById('encodeStatusText');
+                    btn.disabled = true;
+                    statusDot.className = 'status-dot rendering';
+                    statusText.textContent = 'Rendering audio...';
+                    var dotDur = parseInt(document.getElementById('dotDuration').value) / 1000;
+                    var freq = parseInt(document.getElementById('toneFreq').value);
+                    var vol = parseInt(document.getElementById('volume').value) / 100;
+                    var text = encodeInput.value.toUpperCase();
+                    var totalDur = 0;
+                    for (var ci = 0; ci < text.length; ci++) {
+                        var ch = text[ci];
+                        if (ch === ' ') { totalDur += dotDur * 7; continue; }
+                        var morse = MORSE_MAP[ch];
+                        if (!morse) continue;
+                        for (var si = 0; si < morse.length; si++) {
+                            totalDur += (morse[si] === '.') ? dotDur : dotDur * 3;
+                            if (si < morse.length - 1) totalDur += dotDur;
+                        }
+                        if (ci < text.length - 1) {
+                            var nextCh = text[ci + 1];
+                            if (nextCh !== ' ') totalDur += dotDur * 3;
+                        }
+                    }
+                    totalDur += 0.1;
+                    var sampleRate = 44100;
+                    var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDur, sampleRate);
+                    var currentTime = 0;
+                    var masterGain = offlineCtx.createGain();
+                    masterGain.gain.value = vol;
+                    masterGain.connect(offlineCtx.destination);
+                    for (var ci = 0; ci < text.length; ci++) {
+                        var ch = text[ci];
+                        if (ch === ' ') { currentTime += dotDur * 7; continue; }
+                        var morse = MORSE_MAP[ch];
+                        if (!morse) continue;
+                        for (var si = 0; si < morse.length; si++) {
+                            var sym = morse[si];
+                            var dur = (sym === '.') ? dotDur : dotDur * 3;
+                            var osc = offlineCtx.createOscillator();
+                            var gain = offlineCtx.createGain();
+                            osc.type = 'sine'; osc.frequency.value = freq;
+                            gain.gain.setValueAtTime(vol, currentTime);
+                            gain.gain.setValueAtTime(0, currentTime + dur);
+                            osc.connect(gain); gain.connect(masterGain);
+                            osc.start(currentTime); osc.stop(currentTime + dur);
+                            currentTime += dur;
+                            if (si < morse.length - 1) currentTime += dotDur;
+                        }
+                        if (ci < text.length - 1) {
+                            var nextCh = text[ci + 1];
+                            if (nextCh !== ' ') currentTime += dotDur * 3;
+                        }
+                    }
+                    offlineCtx.startRendering().then(function (renderedBuffer) {
+                        var wavBlob = audioBufferToWav(renderedBuffer);
+                        var url = URL.createObjectURL(wavBlob);
+                        var a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'morse_' + text.replace(/[^A-Z0-9]/g, '_').substring(0, 30) + '.wav';
+                        document.body.appendChild(a); a.click();
+                        document.body.removeChild(a); URL.revokeObjectURL(url);
+                        btn.disabled = false; statusDot.className = 'status-dot';
+                        statusText.textContent = 'Downloaded!';
+                        setTimeout(function () { if (statusText.textContent === 'Downloaded!') statusText.textContent = 'Ready'; }, 2000);
+                    }).catch(function (err) {
+                        btn.disabled = false; statusDot.className = 'status-dot';
+                        statusText.textContent = 'Error: ' + err.message; console.error(err);
+                    });
+                }
+                function audioBufferToWav(buffer) {
+                    var numChannels = buffer.numberOfChannels;
+                    var sampleRate = buffer.sampleRate;
+                    var channelData = buffer.getChannelData(0);
+                    if (numChannels > 1) {
+                        var mixed = new Float32Array(channelData.length);
+                        for (var c = 0; c < numChannels; c++) {
+                            var ch = buffer.getChannelData(c);
+                            for (var i = 0; i < ch.length; i++) mixed[i] += ch[i] / numChannels;
+                        }
+                        channelData = mixed; numChannels = 1;
+                    }
+                    var dataLength = channelData.length * 2;
+                    var wavBuffer = new ArrayBuffer(44 + dataLength);
+                    var view = new DataView(wavBuffer);
+                    writeString(view, 0, 'RIFF'); view.setUint32(4, 36 + dataLength, true);
+                    writeString(view, 8, 'WAVE');
+                    writeString(view, 12, 'fmt '); view.setUint32(16, 16, true);
+                    view.setUint16(20, 1, true); view.setUint16(22, numChannels, true);
+                    view.setUint32(24, sampleRate, true);
+                    view.setUint32(28, sampleRate * numChannels * 2, true);
+                    view.setUint16(32, numChannels * 2, true); view.setUint16(34, 16, true);
+                    writeString(view, 36, 'data'); view.setUint32(40, dataLength, true);
+                    var offset = 44;
+                    for (var i = 0; i < channelData.length; i++) {
+                        var sample = Math.max(-1, Math.min(1, channelData[i]));
+                        sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                        view.setInt16(offset, sample, true); offset += 2;
+                    }
+                    return new Blob([wavBuffer], { type: 'audio/wav' });
+                }
+                function writeString(view, offset, string) {
+                    for (var i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+                }
+
+                // ─── DECODER STATE & HELPERS ─────────────────────────────────────
+                var decoderState = {
+                    symbolBuffer: '', decodedText: '', lastSignalEnd: 0,
+                    inSignal: false, signalStart: 0, dotDurationEstimate: 150,
+                    signalDurations: [], canvasCtx: null, waveformData: null
+                };
+                function morseToChar(morse) {
+                    return REVERSE_MORSE[morse] || '[' + morse + ']';
+                }
+                function decodeSymbol(morse) {
+                    decoderState.decodedText += morseToChar(morse);
+                }
+                function updateDecodeDisplay() {
+                    document.getElementById('decodeText').textContent = decoderState.decodedText;
+                }
+                function clearDecode() {
+                    decoderState.decodedText = '';
+                    decoderState.symbolBuffer = '';
+                    decoderState.signalDurations = [];
                     document.getElementById('decodeText').textContent = '';
                     document.getElementById('currentSymbol').textContent = '\u2014';
-                    startDecodeLoop();
-                })
-                .catch(function (err) {
-                    console.error('Mic error:', err);
-                    alert('Microphone access denied. Please allow microphone access.');
-                });
-        }
-        function handleFileUpload(file) {
-            if (!file) return;
-            stopDecoding();
-            clearDecode();
-            var reader = new FileReader();
-            reader.onload = function (e) {
-                var ctx = getAudioCtx();
-                ctx.resume();
-                ctx.decodeAudioData(e.target.result).then(function (buffer) {
-                    document.getElementById('decodeStatus').className = 'status-dot active';
-                    document.getElementById('decodeStatusText').textContent = 'Decoding file...';
-                    // Use direct buffer analysis for frame-accurate decoding
-                    setTimeout(function () {
-                        var result = decodeFileBuffer(buffer);
-                        document.getElementById('decodeText').textContent = result;
-                        document.getElementById('decodeStatus').className = 'status-dot';
-                        document.getElementById('decodeStatusText').textContent = 'Decoded: ' + result.length + ' chars';
-                    }, 10);
-                }).catch(function (err) {
-                    alert('Error decoding audio file: ' + err.message);
-                });
-            };
-            reader.readAsArrayBuffer(file);
-            document.getElementById('fileInput').value = '';
-        }
-        function stopDecoding() {
-            isDecoding = false;
-            if (decodeRAF) cancelAnimationFrame(decodeRAF);
-            if (decoderState.symbolBuffer.length > 0) {
-                decodeSymbol(decoderState.symbolBuffer);
-                decoderState.symbolBuffer = '';
-                updateDecodeDisplay();
-            }
-            if (activeSource) {
-                try { activeSource.stop(); } catch (e) { }
-                activeSource.disconnect(); activeSource = null;
-            }
-            if (micStream) {
-                micStream.getTracks().forEach(function (t) { t.stop(); });
-                micStream = null;
-            }
-            document.getElementById('btnListen').style.display = '';
-            document.getElementById('btnStopDecode').style.display = 'none';
-            document.getElementById('decodeStatus').className = 'status-dot';
-            document.getElementById('decodeStatusText').textContent = 'Ready';
-        }
-        function startDecodeLoop() {
-            if (!isDecoding) return;
-            var canvas = document.getElementById('waveformCanvas');
-            decoderState.canvasCtx = canvas.getContext('2d');
-            decoderState.waveformData = new Uint8Array(getAnalyser().frequencyBinCount);
-            decodeLoop();
-        }
-        function decodeLoop() {
-            if (!isDecoding) return;
-            var ds = decoderState;
-            var now = performance.now();
-            ds.waveformData.fill(0);
-            getAnalyser().getByteTimeDomainData(ds.waveformData);
-            var energy = 0;
-            for (var i = 0; i < ds.waveformData.length; i++) {
-                var v = (ds.waveformData[i] - 128) / 128;
-                energy += v * v;
-            }
-            energy = Math.sqrt(energy / ds.waveformData.length);
-            var threshold = parseInt(document.getElementById('sensitivity').value) / 1000;
-            drawWaveform(ds.waveformData, energy, threshold);
-            if (energy > threshold && !ds.inSignal) {
-                ds.inSignal = true; ds.signalStart = now;
-            } else if (energy <= threshold && ds.inSignal) {
-                ds.inSignal = false;
-                var signalDur = now - ds.signalStart;
-                var dotEst = ds.dotDurationEstimate;
-                var symbol = (signalDur < dotEst * 1.8) ? '.' : '-';
-                ds.symbolBuffer += symbol;
-                document.getElementById('currentSymbol').textContent = ds.symbolBuffer;
-                ds.lastSignalEnd = now;
-                var estDur = (symbol === '.') ? signalDur : signalDur / 3;
-                ds.signalDurations.push(estDur);
-                if (ds.signalDurations.length > 20) ds.signalDurations.shift();
-                var sum = 0;
-                for (var k = 0; k < ds.signalDurations.length; k++) sum += ds.signalDurations[k];
-                ds.dotDurationEstimate = Math.max(50, sum / ds.signalDurations.length);
-            }
-            if (!ds.inSignal && ds.symbolBuffer.length > 0) {
-                var silence = now - ds.lastSignalEnd;
-                var dotEst = ds.dotDurationEstimate;
-                if (silence >= dotEst * 7) {
-                    decodeSymbol(ds.symbolBuffer); ds.decodedText += ' ';
-                    ds.symbolBuffer = ''; document.getElementById('currentSymbol').textContent = '\u2014';
-                    updateDecodeDisplay(); ds.lastSignalEnd = now;
-                } else if (silence >= dotEst * 3) {
-                    decodeSymbol(ds.symbolBuffer); ds.symbolBuffer = '';
-                    document.getElementById('currentSymbol').textContent = '\u2014';
-                    updateDecodeDisplay(); ds.lastSignalEnd = now;
-                } else if (silence >= 2500) {
-                    decodeSymbol(ds.symbolBuffer); ds.symbolBuffer = '';
-                    document.getElementById('currentSymbol').textContent = '\u2014';
-                    updateDecodeDisplay(); ds.lastSignalEnd = now;
                 }
-            }
-            decodeRAF = requestAnimationFrame(decodeLoop);
-        }
 
-        // ─── Waveform Visualization ──────────────────────────────────────
-        function drawWaveform(data, energy, threshold) {
-            var canvas = document.getElementById('waveformCanvas');
-            var ctx = decoderState.canvasCtx;
-            if (!ctx) return;
-            var w = canvas.width = canvas.offsetWidth * 2;
-            var h = canvas.height = canvas.offsetHeight * 2;
-            ctx.clearRect(0, 0, w, h);
-            ctx.fillStyle = '#1a1d27'; ctx.fillRect(0, 0, w, h);
-            ctx.strokeStyle = 'rgba(231, 76, 60, 0.27)'; ctx.lineWidth = 1;
-            ctx.setLineDash([5, 5]); ctx.beginPath();
-            var threshY = h - threshold * h * 2;
-            ctx.moveTo(0, threshY); ctx.lineTo(w, threshY); ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.strokeStyle = energy > threshold ? '#f1c40f' : '#6c63ff';
-            ctx.lineWidth = 2; ctx.beginPath();
-            var sliceWidth = w / data.length; var x = 0;
-            for (var i = 0; i < data.length; i++) {
-                var v = data[i] / 128.0; var y = (v * h) / 2;
-                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-                x += sliceWidth;
-            }
-            ctx.stroke();
-            var energyBar = Math.min(1, energy * 5);
-            var barColor = energy > threshold ? '#2ecc71' : '#e74c3c';
-            ctx.fillStyle = barColor + '33'; ctx.fillRect(0, 0, w * energyBar, 3);
-        }
+                // ─── FILE DECODER (Direct Buffer Analysis) ───────────────────────
+                function decodeFileBuffer(buffer) {
+                    var samples = buffer.getChannelData(0);
+                    var sampleRate = buffer.sampleRate;
+                    var windowMs = 20;
+                    var windowSize = Math.floor(sampleRate * (windowMs / 1000));
+                    var threshold = 0.05;
+                    var state = 'silence';
+                    var windowStart = 0;
+                    var durations = [];
+                    var decodedText = '';
+                    var symbolBuffer = '';
+                    var dotEst = 0.12;
+                    for (var i = 0; i < samples.length; i += windowSize) {
+                        var sum = 0;
+                        var end = Math.min(i + windowSize, samples.length);
+                        for (var j = i; j < end; j++) sum += samples[j] * samples[j];
+                        var rms = Math.sqrt(sum / (end - i));
+                        var newState = rms > threshold ? 'signal' : 'silence';
+                        if (newState !== state) {
+                            durations.push({ type: state, dur: (i - windowStart) / sampleRate });
+                            state = newState; windowStart = i;
+                        }
+                    }
+                    if (windowStart < samples.length) {
+                        durations.push({ type: state, dur: (samples.length - windowStart) / sampleRate });
+                    }
+                    for (var k = 0; k < durations.length; k++) {
+                        var seg = durations[k];
+                        if (seg.type === 'signal') {
+                            var sym = (seg.dur < dotEst * 1.8) ? '.' : '-';
+                            symbolBuffer += sym;
+                            var est = (sym === '.') ? seg.dur : seg.dur / 3;
+                            dotEst = dotEst * 0.85 + est * 0.15;
+                        } else {
+                            if (seg.dur >= dotEst * 7) {
+                                decodedText += morseToChar(symbolBuffer) + ' ';
+                                symbolBuffer = '';
+                            } else if (seg.dur >= dotEst * 3) {
+                                decodedText += morseToChar(symbolBuffer);
+                                symbolBuffer = '';
+                            }
+                        }
+                    }
+                    if (symbolBuffer.length > 0) decodedText += morseToChar(symbolBuffer);
+                    return decodedText;
+                }
+
+                // ─── DECODER CONTROLS ────────────────────────────────────────────
+                function startListening() {
+                    if (isDecoding) return;
+                    stopDecoding();
+                    navigator.mediaDevices.getUserMedia({ audio: true })
+                        .then(function (stream) {
+                            micStream = stream;
+                            var source = getAudioCtx().createMediaStreamSource(stream);
+                            source.connect(getAnalyser());
+                            activeSource = source;
+                            isDecoding = true;
+                            document.getElementById('btnListen').style.display = 'none';
+                            document.getElementById('btnStopDecode').style.display = '';
+                            document.getElementById('decodeStatus').className = 'status-dot active';
+                            document.getElementById('decodeStatusText').textContent = 'Listening to mic...';
+                            decoderState.dotDurationEstimate = parseInt(document.getElementById('dotEstimate').value);
+                            decoderState.signalDurations = []; decoderState.symbolBuffer = '';
+                            decoderState.decodedText = ''; decoderState.inSignal = false;
+                            decoderState.lastSignalEnd = 0;
+                            document.getElementById('decodeText').textContent = '';
+                            document.getElementById('currentSymbol').textContent = '\u2014';
+                            startDecodeLoop();
+                        })
+                        .catch(function (err) {
+                            console.error('Mic error:', err);
+                            alert('Microphone access denied. Please allow microphone access.');
+                        });
+                }
+                function handleFileUpload(file) {
+                    if (!file) return;
+                    stopDecoding();
+                    clearDecode();
+                    var reader = new FileReader();
+                    reader.onload = function (e) {
+                        var ctx = getAudioCtx();
+                        ctx.resume();
+                        ctx.decodeAudioData(e.target.result).then(function (buffer) {
+                            document.getElementById('decodeStatus').className = 'status-dot active';
+                            document.getElementById('decodeStatusText').textContent = 'Decoding file...';
+                            setTimeout(function () {
+                                var result = decodeFileBuffer(buffer);
+                                document.getElementById('decodeText').textContent = result;
+                                document.getElementById('decodeStatus').className = 'status-dot';
+                                document.getElementById('decodeStatusText').textContent = 'Decoded: ' + result.length + ' chars';
+                            }, 10);
+                        }).catch(function (err) {
+                            alert('Error decoding audio file: ' + err.message);
+                        });
+                    };
+                    reader.readAsArrayBuffer(file);
+                    document.getElementById('fileInput').value = '';
+                }
+                function stopDecoding() {
+                    isDecoding = false;
+                    if (decodeRAF) cancelAnimationFrame(decodeRAF);
+                    if (decoderState.symbolBuffer.length > 0) {
+                        decodeSymbol(decoderState.symbolBuffer);
+                        decoderState.symbolBuffer = '';
+                        updateDecodeDisplay();
+                    }
+                    if (activeSource) {
+                        try { activeSource.stop(); } catch (e) { }
+                        activeSource.disconnect(); activeSource = null;
+                    }
+                    if (micStream) {
+                        micStream.getTracks().forEach(function (t) { t.stop(); });
+                        micStream = null;
+                    }
+                    document.getElementById('btnListen').style.display = '';
+                    document.getElementById('btnStopDecode').style.display = 'none';
+                    document.getElementById('decodeStatus').className = 'status-dot';
+                    document.getElementById('decodeStatusText').textContent = 'Ready';
+                }
+                function startDecodeLoop() {
+                    if (!isDecoding) return;
+                    var canvas = document.getElementById('waveformCanvas');
+                    decoderState.canvasCtx = canvas.getContext('2d');
+                    decoderState.waveformData = new Uint8Array(getAnalyser().frequencyBinCount);
+                    decodeLoop();
+                }
+                function decodeLoop() {
+                    if (!isDecoding) return;
+                    var ds = decoderState;
+                    var now = performance.now();
+                    ds.waveformData.fill(0);
+                    getAnalyser().getByteTimeDomainData(ds.waveformData);
+                    var energy = 0;
+                    for (var i = 0; i < ds.waveformData.length; i++) {
+                        var v = (ds.waveformData[i] - 128) / 128;
+                        energy += v * v;
+                    }
+                    energy = Math.sqrt(energy / ds.waveformData.length);
+                    var threshold = parseInt(document.getElementById('sensitivity').value) / 1000;
+                    drawWaveform(ds.waveformData, energy, threshold);
+                    if (energy > threshold && !ds.inSignal) {
+                        ds.inSignal = true; ds.signalStart = now;
+                    } else if (energy <= threshold && ds.inSignal) {
+                        ds.inSignal = false;
+                        var signalDur = now - ds.signalStart;
+                        var dotEst = ds.dotDurationEstimate;
+                        var symbol = (signalDur < dotEst * 1.8) ? '.' : '-';
+                        ds.symbolBuffer += symbol;
+                        document.getElementById('currentSymbol').textContent = ds.symbolBuffer;
+                        ds.lastSignalEnd = now;
+                        var estDur = (symbol === '.') ? signalDur : signalDur / 3;
+                        ds.signalDurations.push(estDur);
+                        if (ds.signalDurations.length > 20) ds.signalDurations.shift();
+                        var sum = 0;
+                        for (var k = 0; k < ds.signalDurations.length; k++) sum += ds.signalDurations[k];
+                        ds.dotDurationEstimate = Math.max(50, sum / ds.signalDurations.length);
+                    }
+                    if (!ds.inSignal && ds.symbolBuffer.length > 0) {
+                        var silence = now - ds.lastSignalEnd;
+                        var dotEst = ds.dotDurationEstimate;
+                        if (silence >= dotEst * 7) {
+                            decodeSymbol(ds.symbolBuffer); ds.decodedText += ' ';
+                            ds.symbolBuffer = ''; document.getElementById('currentSymbol').textContent = '\u2014';
+                            updateDecodeDisplay(); ds.lastSignalEnd = now;
+                        } else if (silence >= dotEst * 3) {
+                            decodeSymbol(ds.symbolBuffer); ds.symbolBuffer = '';
+                            document.getElementById('currentSymbol').textContent = '\u2014';
+                            updateDecodeDisplay(); ds.lastSignalEnd = now;
+                        } else if (silence >= 2500) {
+                            decodeSymbol(ds.symbolBuffer); ds.symbolBuffer = '';
+                            document.getElementById('currentSymbol').textContent = '\u2014';
+                            updateDecodeDisplay(); ds.lastSignalEnd = now;
+                        }
+                    }
+                    decodeRAF = requestAnimationFrame(decodeLoop);
+                }
+
+                // ─── Waveform Visualization ──────────────────────────────────────
+                function drawWaveform(data, energy, threshold) {
+                    var canvas = document.getElementById('waveformCanvas');
+                    var ctx = decoderState.canvasCtx;
+                    if (!ctx) return;
+                    var w = canvas.width = canvas.offsetWidth * 2;
+                    var h = canvas.height = canvas.offsetHeight * 2;
+                    ctx.clearRect(0, 0, w, h);
+                    ctx.fillStyle = '#1a1d27'; ctx.fillRect(0, 0, w, h);
+                    ctx.strokeStyle = 'rgba(231, 76, 60, 0.27)'; ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]); ctx.beginPath();
+                    var threshY = h - threshold * h * 2;
+                    ctx.moveTo(0, threshY); ctx.lineTo(w, threshY); ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.strokeStyle = energy > threshold ? '#f1c40f' : '#6c63ff';
+                    ctx.lineWidth = 2; ctx.beginPath();
+                    var sliceWidth = w / data.length; var x = 0;
+                    for (var i = 0; i < data.length; i++) {
+                        var v = data[i] / 128.0; var y = (v * h) / 2;
+                        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                        x += sliceWidth;
+                    }
+                    ctx.stroke();
+                    var energyBar = Math.min(1, energy * 5);
+                    var barColor = energy > threshold ? '#2ecc71' : '#e74c3c';
+                    ctx.fillStyle = barColor + '33'; ctx.fillRect(0, 0, w * energyBar, 3);
+                }
     </script>
 </body>
 </html>
