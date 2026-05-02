@@ -680,7 +680,7 @@
                 }
                 decodedWords.push(decodedWord);
             }
-            var output = decodedWords.join(' ');
+            var output = decodedWords.join('  ');
             if (hasError) {
                 resultEl.innerHTML = output + '<br><span class="error" style="margin-top:6px;display:inline-block;">Unknown Morse sequences shown in [brackets].</span>';
             } else {
@@ -1151,10 +1151,10 @@
             ctx.fillStyle = barColor + '33'; ctx.fillRect(0, 0, w * energyBar, 3);
         }
 
-        // 1. Attach to textarea instead of input
+        // Attach to textarea
         const morseArea = document.getElementById('manualMorseInput');
 
-        // 2. Real-time filtering (works identically on textarea)
+        // Real-time filtering (works identically on textarea and input)
         morseArea.addEventListener('input', (e) => {
           const cleaned = morseArea.value.replace(/[^.\- \/]/g, '');
           if (morseArea.value !== cleaned) {
@@ -1165,7 +1165,7 @@
           updateDisplay();
         });
 
-        // 3. Keyboard blocker (allow Enter for new lines)
+        // Keyboard blocker (allow Enter for new lines)
         morseArea.addEventListener('keydown', (e) => {
           const allowed = ['.', '-', ' ', '/', 'Enter', 'Backspace', 'Delete', 
                            'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
