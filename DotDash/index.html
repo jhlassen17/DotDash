@@ -529,15 +529,16 @@
             <!-- ── Manual Morse Input ── -->
             <div class="manual-morse-section">
                 <label>Enter Morse Code Manually</label>
-                <textarea class="manual-morse-input" 
-                          id="manualMorseInput" 
+                
+                <textarea class="manual-morse-input"
+                          id="manualMorseInput"
                           inputmode="text"
                           autocomplete="off"
                           autocorrect="off"
                           autocapitalize="off"
                           spellcheck="false"
-                          placeholder="e.g. .... . .-.. .-.. ---" 
-                          rows="2" >
+                          placeholder="e.g. .... . .-.. .-.. ---"
+                          rows="2">
                 </textarea>
                 <div class="hint">
                     Separate <strong>letters</strong> with a space &middot;
@@ -547,6 +548,9 @@
                 <div class="manual-btn-row">
                     <button class="btn-manual-decode" onclick="manualDecodeMorse()">&#9986; Decode to Text</button>
                     <button class="btn-clear" onclick="clearManualMorse()">&#128465; Clear</button>
+                    <button class="audio-toggle" id="audioToggle" onclick="toggleAudio()">
+                        <span id="audioIcon">🔇</span> Sound
+                    </button>
                 </div>
                 <div class="manual-decode-result" id="manualDecodeResult"></div>
             </div>
@@ -701,10 +705,13 @@
         var decodeRAF = null;
         var activeSource = null;
         var micStream = null;
+        var audioEnabled = false;
+
         function getAudioCtx() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             return audioCtx;
         }
+
         function getAnalyzer() {
             var ctx = getAudioCtx();
             if (!analyzer || analyzer.context !== ctx) {
@@ -714,6 +721,29 @@
             }
             return analyzer;
         }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const btn = document.getElementById('audioToggle');
+            const icon = document.getElementById('audioIcon');
+            btn.classList.toggle('active', audioEnabled);
+            icon.textContent = audioEnabled ? '🔊' : '🔇';
+        }
+
+        function playTone(duration) {
+            if (!audioEnabled) return;
+            audioCtx = getAudioCtx();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = duration < 150 ? 600 : 800;
+            gain.gain.value = 0.08;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration / 1000);
+        }
+
         // ─── ENCODER / PLAYER ────────────────────────────────────────────
         var isPlaying = false;
         var playAbort = false;
@@ -1162,7 +1192,6 @@
             morseArea.value = cleaned;
             morseArea.setSelectionRange(cursorPos, cursorPos);
           }
-          updateDisplay();
         });
 
         // Keyboard blocker (allow Enter for new lines)
@@ -1172,6 +1201,9 @@
           if (!allowed.includes(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
             e.preventDefault();
           }
+
+            if (e.key === '.') playTone(100);
+            else if (e.key === '-') playTone(300);
         });
 
     </script>
