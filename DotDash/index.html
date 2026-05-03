@@ -489,11 +489,11 @@
 </head>
 <body>
     <h1>DotDash - &#9889; Morse Code</h1>
-    <p class="subtitle">Encode text to morse audio &middot; Decode morse microphone or audio files to text</p>
+    <p class="subtitle">Encode text to morse audio &middot; Decode morse microphone or audio files to text &middot; Decode Morse Code to English  &middot; Encode English to Morse Code</p>
     <div class="container">
         <!-- ENCODE SECTION -->
         <div class="card">
-            <h2><span class="icon">&#128229;</span> Encode &mdash; Text to Morse</h2>
+            <h2><span class="icon">&#128229;</span> Encode &mdash; English Text to Morse Code Text</h2>
             <textarea id="encodeInput" placeholder="Type text here to encode to Morse code...">HELLO WORLD</textarea>
             <div class="morse-display" id="morsePreview"></div>
             <div class="settings-row">
@@ -516,7 +516,7 @@
             <div class="btn-row">
                 <button class="btn-encode" id="btnPlay" onclick="playMorse()">&#9654; Play Morse</button>
                 <button class="btn-download" id="btnDownload" onclick="downloadMorseWAV()">&#11015; Download WAV</button>
-                <button class="btn-clear" onclick="stopPlaying()">&#128308; Stop</button>
+                <button class="btn-clear" onclick="stopPlaying()">🛑 Stop</button>
             </div>
             <div class="status-bar">
                 <div class="status-dot" id="encodeStatus"></div>
@@ -525,11 +525,11 @@
         </div>
         <!-- DECODE SECTION -->
         <div class="card">
-            <h2><span class="icon">&#127907;</span> Decode &mdash; Morse to Text</h2>
+            <h2><span class="icon">⌨️</span> Decode &mdash; Morse Text to English Text</h2>
             <!-- ── Manual Morse Input ── -->
             <div class="manual-morse-section">
                 <label>Enter Morse Code Manually</label>
-                
+
                 <textarea class="manual-morse-input"
                           id="manualMorseInput"
                           inputmode="text"
@@ -554,7 +554,9 @@
                 </div>
                 <div class="manual-decode-result" id="manualDecodeResult"></div>
             </div>
-
+        </div>
+        <div class="card">
+            <h2><span class="icon">&#127907;</span> Decode &mdash; Morse Audio to Text</h2>
             <div class="current-symbol" id="currentSymbol">&#8212;</div>
             <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
 
@@ -1186,24 +1188,27 @@
 
         // Real-time filtering (works identically on textarea and input)
         morseArea.addEventListener('input', (e) => {
-          const cleaned = morseArea.value.replace(/[^.\- \/]/g, '');
-          if (morseArea.value !== cleaned) {
-            const cursorPos = morseArea.selectionStart;
-            morseArea.value = cleaned;
-            morseArea.setSelectionRange(cursorPos, cursorPos);
-          }
+            const cleaned = morseArea.value.replace(/[^.\- \/]/g, '');
+            if (morseArea.value !== cleaned) {
+                const cursorPos = morseArea.selectionStart;
+                morseArea.value = cleaned;
+                morseArea.setSelectionRange(cursorPos, cursorPos);
+            }
         });
 
         // Keyboard blocker (allow Enter for new lines)
         morseArea.addEventListener('keydown', (e) => {
-          const allowed = ['.', '-', ' ', '/', 'Enter', 'Backspace', 'Delete', 
-                           'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
-          if (!allowed.includes(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
-            e.preventDefault();
-          }
-
-            if (e.key === '.') playTone(100);
-            else if (e.key === '-') playTone(300);
+            const allowed = ['.', '-', ' ', '/', 'Enter', 'Backspace', 'Delete',
+                'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+            if (!allowed.includes(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                e.preventDefault();
+            }
+            else if (e.key === '.') {
+                playTone(120);
+             }
+             else if (e.key === '-') { 
+                 playTone(350);
+            }
         });
 
     </script>
