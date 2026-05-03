@@ -494,7 +494,13 @@
         <!-- ENCODE SECTION -->
         <div class="card">
             <h2><span class="icon">&#128229;</span> Encode &mdash; English Text to Morse Code Text</h2>
-            <textarea id="encodeInput" placeholder="Type text here to encode to Morse code...">HELLO WORLD</textarea>
+            <textarea id="encodeInput" 
+                        inputmode="text"
+                        autocomplete="on"
+                        autocorrect="on"
+                        autocapitalize="on"
+                        spellcheck="true" 
+                        placeholder="Type text here to encode to Morse code..."></textarea>
             <div class="morse-display" id="morsePreview"></div>
             <div class="settings-row">
                 <div class="setting">
@@ -716,7 +722,7 @@
         function getAnalyzer() {
             var ctx = getAudioCtx();
             if (!analyzer || analyzer.context !== ctx) {
-                analyzer = ctx.createanalyzer();
+                analyzer = ctx.createAnalyser();
                 analyzer.fftSize = 512;
                 analyzer.smoothingTimeConstant = 0.3;
             }
@@ -1021,6 +1027,10 @@
         // ─── DECODER CONTROLS ────────────────────────────────────────────
         function startListening() {
             if (isDecoding) return;
+            var ctx = getAudioCtx();
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
             stopDecoding();
             navigator.mediaDevices.getUserMedia({ audio: true })
                 .then(function (stream) {
@@ -1089,8 +1099,8 @@
                 updateDecodeDisplay();
             }
             if (activeSource) {
-                try { activeSource.stop(); } catch (e) { }
-                activeSource.disconnect(); activeSource = null;
+                activeSource.disconnect();
+                activeSource = null;
             }
             if (micStream) {
                 micStream.getTracks().forEach(function (t) { t.stop(); });
