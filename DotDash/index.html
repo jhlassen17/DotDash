@@ -538,8 +538,7 @@
                           autocapitalize="off"
                           spellcheck="false"
                           placeholder="e.g. .... . .-.. .-.. ---"
-                          rows="2">
-                </textarea>
+                          rows="2"></textarea>
                 <div class="hint">
                     Separate <strong>letters</strong> with a space &middot;
                     Separate <strong>words</strong> with <code>/</code> or three spaces &nbsp;
@@ -576,8 +575,8 @@
                 </div>
                 <div class="setting">
                     <label>Dot Estimate</label>
-                    <input type="range" id="dotEstimate" min="50" max="400" value="150">
-                    <span class="val" id="dotEstimateVal">150 ms</span>
+                    <input type="range" id="dotEstimate" min="50" max="400" value="120">
+                    <span class="val" id="dotEstimateVal">120 ms</span>
                 </div>
             </div>
             <div class="btn-row">
@@ -732,17 +731,21 @@
             icon.textContent = audioEnabled ? '🔊' : '🔇';
         }
 
-        function playTone(duration) {
+        function playTone(keyChar) {
             if (!audioEnabled) return;
+            if (keyChar !== '.' && keyChar !== '-') return;
             audioCtx = getAudioCtx();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sine';
-            osc.frequency.value = duration < 150 ? 600 : 800;
-            gain.gain.value = 0.08;
+            // osc.frequency.value = duration < 150 ? 600 : 800;
+            osc.frequency.value = parseInt(document.getElementById('toneFreq').value);
+            gain.gain.value = parseInt(document.getElementById('volume').value) / 100;
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start();
+            var dotDur = parseInt(document.getElementById('dotDuration').value);
+            var duration = (keyChar === '.') ? dotDur : dotDur * 3;
             osc.stop(audioCtx.currentTime + duration / 1000);
         }
 
@@ -1203,11 +1206,8 @@
             if (!allowed.includes(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 e.preventDefault();
             }
-            else if (e.key === '.') {
-                playTone(120);
-             }
-             else if (e.key === '-') { 
-                 playTone(350);
+            else {
+                playTone(e.key);
             }
         });
 
