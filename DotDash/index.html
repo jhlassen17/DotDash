@@ -520,6 +520,7 @@
                 </div>
             </div>
             <div class="btn-row">
+                <button class="btn-manual-decode" id="btnMorseEncode" onclick="liveDecodeMorse()">&#9986; Encode to Morse</button>
                 <button class="btn-encode" id="btnPlay" onclick="playMorse()">&#9654; Play Morse</button>
                 <button class="btn-download" id="btnDownload" onclick="downloadMorseWAV()">&#11015; Download WAV</button>
                 <button class="btn-clear" onclick="stopPlaying()">🛑 Stop</button>
@@ -632,7 +633,10 @@
         (function () {
             var el = document.getElementById('refTable');
             var html = '<table>';
-            for (var k in MORSE_MAP) html += '<tr><td>' + k + '</td><td>' + MORSE_MAP[k] + '</td></tr>';
+            var cellCount = 0;
+            for (var k in MORSE_MAP) {
+                html += '<tr><td>' + k + '</td><td>' + MORSE_MAP[k] + '</td></tr>';
+            }
             html += '</table>';
             el.innerHTML = html;
         })();
@@ -642,10 +646,16 @@
         encodeInput.addEventListener('input', function () {
             var text = encodeInput.value.toUpperCase();
             var parts = [];
+
             for (var i = 0; i < text.length; i++) {
-                if (MORSE_MAP[text[i]]) parts.push(MORSE_MAP[text[i]]);
+                if (text[i] === ' ') {
+                    parts.push('/'); // ✅ word separator
+                } else if (MORSE_MAP[text[i]]) {
+                    parts.push(MORSE_MAP[text[i]]);
+                }
             }
-            morsePreview.textContent = parts.join(' ') || '';
+
+            morsePreview.textContent = parts.join(' ');
         });
         encodeInput.dispatchEvent(new Event('input'));
         // ─── Settings Display ────────────────────────────────────────────
@@ -699,6 +709,48 @@
             }
             resultEl.classList.add('visible');
         }
+        function liveDecodeMorse() {
+            var raw = document.getElementById('manualMorseInput').value.trim();
+            var resultEl = document.getElementById('manualDecodeResult');
+
+            if (!raw) {
+                resultEl.innerHTML = '';
+                resultEl.classList.remove('visible');
+                return;
+            }
+
+            var normalized = raw.replace(/\//g, '   ');
+            var words = normalized.split(/\s{3,}/).filter(w => w.length > 0);
+
+            var decodedWords = [];
+            var hasError = false;
+
+            for (var w = 0; w < words.length; w++) {
+                var letters = words[w].split(/\s+/).filter(l => l.length > 0);
+                var decodedWord = '';
+
+                for (var l = 0; l < letters.length; l++) {
+                    var morse = letters[l];
+
+                    if (morse in REVERSE_MORSE) {
+                        decodedWord += REVERSE_MORSE[morse];
+                    } else {
+                        decodedWord += '[' + morse + ']';
+                        hasError = true;
+                    }
+                }
+
+                decodedWords.push(decodedWord);
+            }
+
+            var output = decodedWords.join('  ');
+
+            resultEl.innerHTML = hasError
+                ? output + '<br><span class="error">Unknown sequences in [brackets]</span>'
+                : output;
+
+            resultEl.classList.add('visible');
+        }
         function clearManualMorse() {
             document.getElementById('manualMorseInput').value = '';
             var resultEl = document.getElementById('manualDecodeResult');
@@ -733,8 +785,17 @@
             audioEnabled = !audioEnabled;
             const btn = document.getElementById('audioToggle');
             const icon = document.getElementById('audioIcon');
+
             btn.classList.toggle('active', audioEnabled);
             icon.textContent = audioEnabled ? '🔊' : '🔇';
+
+            // ✅ Return focus to Morse input
+            const morseInput = document.getElementById('manualMorseInput');
+            morseInput.focus();
+
+            // Optional: place cursor at end (better UX)
+            const len = morseInput.value.length;
+            morseInput.setSelectionRange(len, len);
         }
 
         function playTone(keyChar) {
@@ -986,40 +1047,44 @@
                 durations.push({ type: state, dur: (samples.length - windowStart) / sampleRate });
             }
 
-            var currentWordSymbols = [];
+            var currentWordLetters = [];
 
             for (var k = 0; k < durations.length; k++) {
                 var seg = durations[k];
                 if (seg.type === 'signal') {
                     var sym = (seg.dur < dotEst * 1.8) ? '.' : '-';
                     symbolBuffer += sym;
-                    currentWordSymbols.push(sym);
                     var est = (sym === '.') ? seg.dur : seg.dur / 3;
                     dotEst = dotEst * 0.85 + est * 0.15;
                 } else {
                     if (seg.dur >= dotEst * 7) {
                         // Word boundary
-                        var wordMorse = currentWordSymbols.join('');
-                        morseSequence += (morseSequence ? ' / ' : '') + wordMorse;
-                        decodedText += morseToChar(symbolBuffer) + ' ';
-                        symbolBuffer = '';
-                        currentWordSymbols = [];
+                        if (symbolBuffer.length > 0) {
+                            currentWordLetters.push(symbolBuffer);
+                            decodedText += morseToChar(symbolBuffer); // ✅ ADD THIS
+                            symbolBuffer = '';
+                        }
+
+                        morseSequence += (morseSequence ? ' / ' : '') + currentWordLetters.join(' ');
+                        decodedText += ' ';
+                        currentWordLetters = [];
                     } else if (seg.dur >= dotEst * 3) {
                         // Letter boundary
-                        var letterMorse = currentWordSymbols.join('');
-                        morseSequence += (morseSequence ? ' ' : '') + letterMorse;
-                        decodedText += morseToChar(symbolBuffer);
+                        currentWordLetters.push(symbolBuffer);
+                        decodedText += morseToChar(symbolBuffer); // ✅ ADD THIS
                         symbolBuffer = '';
-                        currentWordSymbols = [];
                     }
                     // short silence between symbols within a letter — do nothing
                 }
             }
             // Flush remaining
             if (symbolBuffer.length > 0) {
-                var leftoverMorse = currentWordSymbols.join('');
-                morseSequence += (morseSequence ? ' ' : '') + leftoverMorse;
-                decodedText += morseToChar(symbolBuffer);
+                currentWordLetters.push(symbolBuffer);
+                decodedText += morseToChar(symbolBuffer); // ✅ ADD THIS
+
+                if (currentWordLetters.length > 0) {
+                    morseSequence += (morseSequence ? ' / ' : '') + currentWordLetters.join(' ');
+                }
             }
 
             return { decodedText: decodedText, morseSequence: morseSequence };
@@ -1207,6 +1272,9 @@
                 morseArea.value = cleaned;
                 morseArea.setSelectionRange(cursorPos, cursorPos);
             }
+
+            // 🔥 ADD THIS LINE
+            liveDecodeMorse();
         });
 
         // Keyboard blocker (allow Enter for new lines)
