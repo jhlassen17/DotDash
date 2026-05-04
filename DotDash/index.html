@@ -349,9 +349,8 @@
         }
 
         .reference {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-            gap: 6px;
+            display: block; 
+            width: 100%;
         }
 
             .reference table {
@@ -554,6 +553,56 @@
             .morse-table tr:hover td.code {
                 text-shadow: 0 0 6px rgba(241, 196, 15, 0.4);
             }
+
+        .morse-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 8px;
+        }
+
+        .morse-item {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s, transform 0.1s;
+        }
+
+            .morse-item:hover {
+                background: #2a2f42;
+                transform: translateY(-1px);
+            }
+
+            .morse-item .char {
+                font-weight: 700;
+                color: var(--accent);
+                font-size: 0.95rem;
+            }
+
+            .morse-item .code {
+                font-family: 'Courier New', monospace;
+                letter-spacing: 2px;
+                color: #f1c40f;
+                font-size: 0.9rem;
+            }
+
+        @media (max-width: 600px) {
+            .morse-grid {
+                grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            }
+
+            .morse-item {
+                padding: 8px;
+            }
+
+                .morse-item .code {
+                    font-size: 0.8rem;
+                    letter-spacing: 1.5px;
+                }
+        }
     </style>
 </head>
 <body>
@@ -936,13 +985,17 @@
 
         // Clears the manual morse code input fields
         function clearManualMorse() {
+            const input = document.getElementById('manualMorseInput');
+            input.value = '';
             // Clear
-            document.getElementById('manualMorseInput').value = '';
+            //document.getElementById('manualMorseInput').value = '';
             var resultEl = document.getElementById('manualDecodeResult');
             resultEl.innerHTML = '';
             resultEl.classList.remove('visible');
             // Reset
             document.getElementById('manualDecodeCount').innerHTML = 'Ready';
+            // Focus textarea
+            input.focus();
         }
 
         // Audio Context & Analyzer (Shared)
@@ -1386,6 +1439,8 @@
             document.getElementById('detectedMorseDisplay').classList.remove('visible');
             document.getElementById('detectedMorseLabel').classList.remove('visible');
             document.getElementById('decodeOutputLabel').classList.remove('visible');
+            // Focus file input (UX choice)
+            document.getElementById('fileInput').focus();
         }
 
         // File Decoder (Direct Buffer Analysis)
@@ -1812,7 +1867,30 @@
 
             // Trigger preview refresh (keeps logic consistent)
             encodeInput.dispatchEvent(new Event('input'));
+
+            // Focus textarea
+            encodeInput.focus();
         }
+
+        // Dynamically size reference table
+        (function () {
+            var el = document.getElementById('refTable');
+            var keys = Object.keys(MORSE_MAP);
+
+            var html = '<div class="morse-grid">';
+
+            for (var i = 0; i < keys.length; i++) {
+                html += `
+            <div class="morse-item">
+                <div class="char">${keys[i]}</div>
+                <div class="code">${MORSE_MAP[keys[i]]}</div>
+            </div>
+        `;
+            }
+
+            html += '</div>';
+            el.innerHTML = html;
+        })();
     </script>
 </body>
 </html>
