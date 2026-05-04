@@ -9,7 +9,7 @@
     Save a copy for offline use, all functions should work locally.
     
     @Author: Jeffrey Lassen
-    @Version: 1.0.7
+    @Version: 1.0.9
     @LastUpdated: 05/03/2026
     
     -->
@@ -329,14 +329,15 @@
 
         .file-label {
             display: block;
-            padding: 12px 18px;
-            background: #12141c;
+            padding: 12px;
+            /* background: #12141c; */
+            background: var(--accent);
             border: 1px dashed #444;
             border-radius: 10px;
             text-align: center;
             cursor: pointer;
             transition: border-color 0.2s;
-            color: #aaa;
+            color: #fff;
         }
 
             .file-label:hover {
@@ -608,7 +609,7 @@
 <body>
     <!-- Header area -->
     <h1>DotDash - &#9889; Morse Code</h1>
-    <p class="subtitle">Encode text to morse audio &middot; Decode morse microphone or audio files to text &middot; Decode Morse Code to English  &middot; Encode English to Morse Code</p>
+    <p class="subtitle">Encode English text to morse audio &middot; Decode morse microphone or audio files to English text <br /> Decode Morse Code to English Text &middot; Encode English text to Morse Code</p>
     <p class="subtitle">Download this page and save it to your device to run completely offline! <a href="index.html" download="DotDash.html" id="offlineDLLink">Click here for offline version</a>.</p>
     <!-- Containers -->
     <div class="container">
@@ -681,10 +682,10 @@
                 <!-- Actions -->
                 <div class="manual-btn-row">
                     <button class="btn-manual-decode" onclick="manualDecodeMorse()">&#9986; Decode to Text</button>
-                    <button class="btn-clear" onclick="clearManualMorse()">&#128465; Clear</button>
                     <button class="audio-toggle" id="audioToggle" onclick="toggleAudio()">
                         <span id="audioIcon">🔇</span> Sound
                     </button>
+                    <button class="btn-clear" onclick="clearManualMorse()">&#128465; Clear</button>
                 </div>
                 <!-- Decoded Morse Display -->
                 <div class="manual-decode-result" id="manualDecodeResult"></div>
@@ -697,7 +698,7 @@
         </div>
         <!-- Morse Audio Decoder -->
         <div class="card">
-            <h2><span class="icon">&#127907;</span> Decode &mdash; Morse Audio to Text</h2>
+            <h2><span class="icon">&#127907;</span> Decode &mdash; Morse Audio to English Text</h2>
             <!-- Current Symbol Display -->
             <div class="current-symbol" id="currentSymbol">&#8212;</div>
             <!-- WaveForm, only works on Mic input (file input goes too fast) -->
@@ -727,12 +728,10 @@
             <div class="btn-row">
                 <button class="btn-decode" id="btnListen" onclick="startListening()">&#127907; Start Mic</button>
                 <button class="btn-stop" id="btnStopDecode" onclick="stopDecoding()" style="display:none;">🛑 Stop</button>
-                <button class="btn-clear" onclick="clearDecode()">&#128465; Clear</button>
-            </div>
-            <!-- File Upload -->
-            <div class="file-input-wrapper">
+                <!-- File Upload -->
                 <label class="file-label" for="fileInput">&#128196; Upload Audio File (mp3, m4a, wav, ogg)</label>
                 <input type="file" id="fileInput" accept="audio/*" onchange="handleFileUpload(this.files[0])">
+                <button class="btn-clear" onclick="clearDecode()">&#128465; Clear</button>
             </div>
             <!-- Status -->
             <div class="status-bar">
@@ -748,7 +747,7 @@
     </div>
     <div>
         <!-- Footer -->
-        <h6>&#0169 - Lassens.IT - Made with ❤️. Version: 1.0.7</h6>
+        <h6>&#0169 (2026) - Lassens.IT - Made with ❤️. Version: 1.0.9</h6>
     </div>
     <script>
         // Morse Code Map
