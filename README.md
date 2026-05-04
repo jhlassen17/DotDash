@@ -127,6 +127,3 @@ All rights reserved unless otherwise specified.
 **Jeffrey Lassen**  
 Version: `1.0.9`  
 Last Updated: `05/03/2026`
-- Or turn this into a hosted GitHub Pages project
-
-Just say 👍
