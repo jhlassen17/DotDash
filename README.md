@@ -1,7 +1,3 @@
-Here’s a clean, professional `README.md` you can drop straight into your GitHub repo:
-
----
-
 # ⚡ DotDash – Morse Code Suite
 
 **DotDash** is a fully self-contained, browser-based Morse Code encoder/decoder.  
