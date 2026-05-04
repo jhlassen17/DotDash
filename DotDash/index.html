@@ -9,7 +9,7 @@
     Save a copy for offline use, all functions should work locally.
     
     @Author: Jeffrey Lassen
-    @Version: 1.0.9
+    @Version: 1.1.0
     @LastUpdated: 05/03/2026
     
     -->
@@ -747,8 +747,128 @@
     </div>
     <div>
         <!-- Footer -->
-        <h6>&#0169 (2026) - Lassens.IT - Made with ❤️. Version: 1.0.9</h6>
+        <h6>&#0169 (2026) - Lassens.IT - Made with ❤️. Version: 1.1.0</h6>
     </div>
+    <script>
+        class MorseDetector {
+            constructor(getAnalyzer, getAudioCtx) {
+                this.getAnalyzer = getAnalyzer;
+                this.getAudioCtx = getAudioCtx;
+
+                this.lockedFrequency = null;
+                this.lockConfidence = 0;
+                this.smoothedEnergy = 0;
+
+                this.inSignal = false;
+                this.signalStart = 0;
+                this.lastSignalEnd = 0;
+
+                this.dotEstimate = 120;
+                this.signalDurations = [];
+
+                this.symbolBuffer = '';
+            }
+
+            getFrequencyData() {
+                const analyzer = this.getAnalyzer();
+                const data = new Uint8Array(analyzer.frequencyBinCount);
+                analyzer.getByteFrequencyData(data);
+                return data;
+            }
+
+            detectPeak(freqData) {
+                let maxVal = 0, maxIndex = 0;
+
+                for (let i = 0; i < freqData.length; i++) {
+                    if (freqData[i] > maxVal) {
+                        maxVal = freqData[i];
+                        maxIndex = i;
+                    }
+                }
+
+                const nyquist = this.getAudioCtx().sampleRate / 2;
+                const freq = (maxIndex / freqData.length) * nyquist;
+
+                return { freq, strength: maxVal / 255 };
+            }
+
+            getToneEnergy(freqData, freq) {
+                const nyquist = this.getAudioCtx().sampleRate / 2;
+                let bin = Math.round(freq / nyquist * freqData.length);
+                bin = Math.max(0, Math.min(freqData.length - 1, bin));
+
+                let sum = 0, count = 0;
+
+                for (let i = -2; i <= 2; i++) {
+                    const idx = bin + i;
+                    if (idx >= 0 && idx < freqData.length) {
+                        sum += freqData[idx];
+                        count++;
+                    }
+                }
+
+                return (sum / count) / 255;
+            }
+
+            getNoiseRatio(freqData, freq) {
+                const nyquist = this.getAudioCtx().sampleRate / 2;
+                let bin = Math.round(freq / nyquist * freqData.length);
+                bin = Math.max(0, Math.min(freqData.length - 1, bin));
+
+                const tone = freqData[bin];
+
+                let total = 0;
+                for (let i = 0; i < freqData.length; i++) total += freqData[i];
+
+                return tone / ((total / freqData.length) + 1);
+            }
+
+            update(now, baseFreq, sensitivity) {
+                const freqData = this.getFrequencyData();
+                const peak = this.detectPeak(freqData);
+
+                // Lock logic
+                if (peak.strength > 0.2 && Math.abs(peak.freq - baseFreq) < 250) {
+                    if (!this.lockedFrequency) {
+                        this.lockedFrequency = peak.freq;
+                        this.lockConfidence = 1;
+                    } else {
+                        this.lockedFrequency =
+                            this.lockedFrequency * 0.8 + peak.freq * 0.2;
+
+                        this.lockConfidence = Math.min(10, this.lockConfidence + 1);
+                    }
+                } else {
+                    this.lockConfidence = Math.max(0, this.lockConfidence - 1);
+                }
+
+                if (this.lockConfidence === 0) {
+                    this.lockedFrequency = null;
+                }
+
+                const targetFreq = this.lockConfidence > 3
+                    ? Math.round(this.lockedFrequency / 10) * 10
+                    : baseFreq;
+
+                // Energy
+                const rawEnergy = this.getToneEnergy(freqData, targetFreq);
+                this.smoothedEnergy = this.smoothedEnergy * 0.7 + rawEnergy * 0.3;
+
+                const energy = this.smoothedEnergy;
+                const ratio = this.getNoiseRatio(freqData, targetFreq);
+
+                const threshold = sensitivity / 200;
+
+                return {
+                    energy,
+                    ratio,
+                    threshold,
+                    targetFreq,
+                    freqData
+                };
+            }
+        }
+    </script>
     <script>
         // Morse Code Map
         var MORSE_MAP = {};
@@ -800,6 +920,8 @@
             el.innerHTML = html;
         })();
 
+        // Set up morse code object
+        var detector = new MorseDetector(getAnalyzer, getAudioCtx);
 
         // Live Preview of encoding text to morse
         var encodeInput = document.getElementById('encodeInput');
@@ -1424,6 +1546,7 @@
             document.getElementById('decodeText').textContent = decoderState.decodedText;
         }
 
+
         // Utility function that clears and cleans up the decode UI elements
         function clearDecode() { 
             // Clear state
@@ -1683,27 +1806,32 @@
             var ds = decoderState;
             var now = performance.now();
             ds.waveformData.fill(0);
-            // Get analyzer
-            getAnalyzer().getByteTimeDomainData(ds.waveformData);
-            // Calculate energy
-            var energy = 0;
-            for (var i = 0; i < ds.waveformData.length; i++) {
-                var v = (ds.waveformData[i] - 128) / 128;
-                energy += v * v;
-            }
-            energy = Math.sqrt(energy / ds.waveformData.length);
 
-            // Check threshold
-            var threshold = parseInt(document.getElementById('sensitivity').value) / 1000;
+            // 
+            var baseFreq = parseInt(document.getElementById('toneFreq').value);
+            var sensitivity = parseInt(document.getElementById('sensitivity').value);
+
+            var result = detector.update(now, baseFreq, sensitivity);
+
+            var energy = result.energy;
+            var ratio = result.ratio;
+            var threshold = result.threshold;
+            var targetFreq = result.targetFreq;
+            var onThreshold = threshold;
+            var offThreshold = threshold * 0.6;
+
             // Draw WaveForm
+            getAnalyzer().getByteTimeDomainData(ds.waveformData);
             drawWaveform(ds.waveformData, energy, threshold);
+            document.getElementById('decodeStatusText').textContent =
+                'Listening (' + Math.round(targetFreq) + ' Hz)';
 
             // Check energy threshold
-            if (energy > threshold && !ds.inSignal) { 
+            if (energy > onThreshold && ratio > 2.5 && !ds.inSignal) { 
                 // Signal Start
                 ds.inSignal = true;
                 ds.signalStart = now;
-            } else if (energy <= threshold && ds.inSignal) { 
+            } else if (energy < offThreshold && ds.inSignal) { 
                 // Energy below threshold
                 ds.inSignal = false;
                 var signalDur = now - ds.signalStart;
@@ -1895,6 +2023,69 @@
         //  Update the download link dynamically
         document.getElementById('offlineDLLink').href = window.location.href;
 
+        function getFrequencyData() {
+            var analyzer = getAnalyzer();
+            var data = new Uint8Array(analyzer.frequencyBinCount);
+            analyzer.getByteFrequencyData(data);
+            return data;
+        }
+
+        function getToneEnergy(freqData, targetFreq) {
+            var ctx = getAudioCtx();
+            var nyquist = ctx.sampleRate / 2;
+            var bin = Math.round(targetFreq / nyquist * freqData.length);
+            bin = Math.max(0, Math.min(freqData.length - 1, bin));
+
+            // Look at a small range around the target (noise tolerance)
+            var range = 2;
+            var sum = 0;
+            var count = 0;
+
+            for (var i = -range; i <= range; i++) {
+                var idx = bin + i;
+                if (idx >= 0 && idx < freqData.length) {
+                    sum += freqData[idx];
+                    count++;
+                }
+            }
+
+            return sum / count / 255; // normalize 0–1
+        }
+
+        function getNoiseRatio(freqData, targetFreq) {
+            var ctx = getAudioCtx();
+            var nyquist = ctx.sampleRate / 2;
+            var bin = Math.round(targetFreq / nyquist * freqData.length);
+
+            var tone = freqData[bin];
+
+            var total = 0;
+            for (var i = 0; i < freqData.length; i++) {
+                total += freqData[i];
+            }
+
+            var avg = total / freqData.length;
+
+            return tone / (avg + 1); // avoid divide by zero
+        }
+
+        function detectPeakFrequency(freqData) {
+            var maxVal = 0;
+            var maxIndex = 0;
+
+            for (var i = 0; i < freqData.length; i++) {
+                if (freqData[i] > maxVal) {
+                    maxVal = freqData[i];
+                    maxIndex = i;
+                }
+            }
+
+            var ctx = getAudioCtx();
+            var nyquist = ctx.sampleRate / 2;
+            var freq = (maxIndex / freqData.length) * nyquist;
+
+            return { freq: freq, strength: maxVal / 255 };
+        }
     </script>
 </body>
 </html>
