@@ -1,5 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- 
+    DotDash - Morse Code Suite
+    Convert morse code to text, text to morse code, morse code to 
+    audio, morse audio to text.
+
+    All functions are contained in this single webpage.  
+    Save a copy for offline use, all functions should work locally.
+    
+    @Author: Jeffrey Lassen
+    @Version: 1.0.4
+    @LastUpdated: 05/03/2026
+    
+    -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -520,10 +533,11 @@
                 </div>
             </div>
             <div class="btn-row">
-                <button class="btn-manual-decode" id="btnMorseEncode" onclick="liveDecodeMorse()">&#9986; Encode to Morse</button>
+                <button class="btn-manual-decode" id="btnMorseEncode" onclick="liveDecodeMorse()">🔨 Encode to Morse</button>
                 <button class="btn-encode" id="btnPlay" onclick="playMorse()">&#9654; Play Morse</button>
                 <button class="btn-download" id="btnDownload" onclick="downloadMorseWAV()">&#11015; Download WAV</button>
                 <button class="btn-clear" onclick="stopPlaying()">🛑 Stop</button>
+                <button class="btn-clear" onclick="clearEncode()">&#128465; Clear</button>
             </div>
             <div class="status-bar">
                 <div class="status-dot" id="encodeStatus"></div>
@@ -559,6 +573,11 @@
                     </button>
                 </div>
                 <div class="manual-decode-result" id="manualDecodeResult"></div>
+            </div>
+            <div class="manual-decode-result" id="manualDecodeResult"></div>
+            <div class="status-bar">
+                <div class="status-dot" id="decodeStatus"></div>
+                <span id="manualDecodeCount">Ready</span>
             </div>
         </div>
         <div class="card">
@@ -673,23 +692,32 @@
         function manualDecodeMorse() {
             var raw = document.getElementById('manualMorseInput').value.trim();
             var resultEl = document.getElementById('manualDecodeResult');
+            var countEl = document.getElementById('manualDecodeCount');
+
             if (!raw) {
                 resultEl.innerHTML = '<span class="error">Please enter some Morse code.</span>';
                 resultEl.classList.add('visible');
+                countEl.textContent = '0 chars';
                 return;
             }
+
             if (!/^[\.\-\s\/]+$/.test(raw)) {
-                resultEl.innerHTML = '<span class="error">Invalid characters. Only <code>.</code> <code>-</code> spaces and <code>/</code> are allowed.</span>';
+                resultEl.innerHTML = '<span class="error">Invalid characters.</span>';
                 resultEl.classList.add('visible');
+                countEl.textContent = '0 chars';
                 return;
             }
+
             var normalized = raw.replace(/\//g, '   ');
             var words = normalized.split(/\s{3,}/).filter(function (w) { return w.length > 0; });
+
             var decodedWords = [];
             var hasError = false;
+
             for (var w = 0; w < words.length; w++) {
                 var letters = words[w].split(/\s+/).filter(function (l) { return l.length > 0; });
                 var decodedWord = '';
+
                 for (var l = 0; l < letters.length; l++) {
                     var morse = letters[l];
                     if (morse in REVERSE_MORSE) {
@@ -699,14 +727,22 @@
                         hasError = true;
                     }
                 }
+
                 decodedWords.push(decodedWord);
             }
-            var output = decodedWords.join('  ');
+
+            var output = decodedWords.join(' ');
+
+            // ✅ Character count (exclude spaces)
+            var charCount = output.replace(/\s/g, '').length;
+            countEl.textContent = charCount + ' chars';
+
             if (hasError) {
-                resultEl.innerHTML = output + '<br><span class="error" style="margin-top:6px;display:inline-block;">Unknown Morse sequences shown in [brackets].</span>';
+                resultEl.innerHTML = output + '<br><span class="error">Unknown Morse sequences shown in [brackets].</span>';
             } else {
                 resultEl.innerHTML = output;
             }
+
             resultEl.classList.add('visible');
         }
         function liveDecodeMorse() {
@@ -745,6 +781,10 @@
 
             var output = decodedWords.join('  ');
 
+            var countEl = document.getElementById('manualDecodeCount');
+            var charCount = output.replace(/\s/g, '').length;
+            countEl.textContent = charCount + ' chars';
+
             resultEl.innerHTML = hasError
                 ? output + '<br><span class="error">Unknown sequences in [brackets]</span>'
                 : output;
@@ -756,6 +796,7 @@
             var resultEl = document.getElementById('manualDecodeResult');
             resultEl.innerHTML = '';
             resultEl.classList.remove('visible');
+            document.getElementById('manualDecodeCount').innerHTML = 'Ready';
         }
         // ─── Audio Context & Analyzer (Shared) ───────────────────────────
         var audioCtx = null;
@@ -1289,6 +1330,23 @@
             }
         });
 
+        function clearEncode() {
+            // Clear input
+            encodeInput.value = '';
+
+            // Clear preview
+            morsePreview.textContent = '';
+
+            // Stop any playing audio
+            stopPlaying();
+
+            // Reset status
+            document.getElementById('encodeStatus').className = 'status-dot';
+            document.getElementById('encodeStatusText').textContent = 'Ready';
+
+            // Optional: trigger preview refresh (keeps logic consistent)
+            encodeInput.dispatchEvent(new Event('input'));
+        }
     </script>
 </body>
 </html>
