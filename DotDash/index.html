@@ -9,7 +9,7 @@
     Save a copy for offline use, all functions should work locally.
     
     @Author: Jeffrey Lassen
-    @Version: 1.0.6
+    @Version: 1.0.7
     @LastUpdated: 05/03/2026
     
     -->
@@ -609,6 +609,7 @@
     <!-- Header area -->
     <h1>DotDash - &#9889; Morse Code</h1>
     <p class="subtitle">Encode text to morse audio &middot; Decode morse microphone or audio files to text &middot; Decode Morse Code to English  &middot; Encode English to Morse Code</p>
+    <p class="subtitle">Download this page and save it to your device to run completely offline! <a href="index.html" download="DotDash.html" id="offlineDLLink">Click here for offline version</a>.</p>
     <!-- Containers -->
     <div class="container">
         <!-- Encode Section -->
@@ -747,7 +748,7 @@
     </div>
     <div>
         <!-- Footer -->
-        <h6>&#0169 - Lassens.IT - Made with ❤️. Version: 1.0.6</h6>
+        <h6>&#0169 - Lassens.IT - Made with ❤️. Version: 1.0.7</h6>
     </div>
     <script>
         // Morse Code Map
@@ -1891,6 +1892,10 @@
             html += '</div>';
             el.innerHTML = html;
         })();
+
+        //  Update the download link dynamically
+        document.getElementById('offlineDLLink').href = window.location.href;
+
     </script>
 </body>
 </html>
