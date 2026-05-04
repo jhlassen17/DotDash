@@ -501,12 +501,15 @@
     </style>
 </head>
 <body>
+    <!-- Header area -->
     <h1>DotDash - &#9889; Morse Code</h1>
     <p class="subtitle">Encode text to morse audio &middot; Decode morse microphone or audio files to text &middot; Decode Morse Code to English  &middot; Encode English to Morse Code</p>
+    <!-- Containers -->
     <div class="container">
-        <!-- ENCODE SECTION -->
+        <!-- Encode Section -->
         <div class="card">
             <h2><span class="icon">&#128229;</span> Encode &mdash; English Text to Morse Code Text</h2>
+            <!-- Type English text to convert to morse code -->
             <textarea id="encodeInput" 
                         inputmode="text"
                         autocomplete="on"
@@ -514,7 +517,9 @@
                         autocapitalize="on"
                         spellcheck="true" 
                         placeholder="Type text here to encode to Morse code..."></textarea>
+            <!-- Encoded morse display -->
             <div class="morse-display" id="morsePreview"></div>
+            <!-- Settings -->
             <div class="settings-row">
                 <div class="setting">
                     <label>Dot Duration</label>
@@ -532,6 +537,7 @@
                     <span class="val" id="volumeVal">70%</span>
                 </div>
             </div>
+            <!-- Actions -->
             <div class="btn-row">
                 <button class="btn-manual-decode" id="btnMorseEncode" onclick="liveDecodeMorse()">🔨 Encode to Morse</button>
                 <button class="btn-encode" id="btnPlay" onclick="playMorse()">&#9654; Play Morse</button>
@@ -539,18 +545,19 @@
                 <button class="btn-clear" onclick="stopPlaying()">🛑 Stop</button>
                 <button class="btn-clear" onclick="clearEncode()">&#128465; Clear</button>
             </div>
+            <!-- Status -->
             <div class="status-bar">
                 <div class="status-dot" id="encodeStatus"></div>
                 <span id="encodeStatusText">Ready</span>
             </div>
         </div>
-        <!-- DECODE SECTION -->
+        <!-- Decode Section -->
         <div class="card">
             <h2><span class="icon">⌨️</span> Decode &mdash; Morse Text to English Text</h2>
             <!-- ── Manual Morse Input ── -->
             <div class="manual-morse-section">
                 <label>Enter Morse Code Manually</label>
-
+                <!-- Type morse code text to translate to English text -->
                 <textarea class="manual-morse-input"
                           id="manualMorseInput"
                           inputmode="text"
@@ -559,12 +566,13 @@
                           autocapitalize="off"
                           spellcheck="false"
                           placeholder="e.g. .... . .-.. .-.. ---"
-                          rows="2"></textarea>
+                          rows="4"></textarea>
                 <div class="hint">
                     Separate <strong>letters</strong> with a space &middot;
                     Separate <strong>words</strong> with <code>/</code> or three spaces &nbsp;
-                    &middot; Only <code>.</code> <code>-</code> <code>/</code> <code> </code> allowed
+                    &middot; Only <code>.</code> <code>-</code> <code>/</code> <code>  </code> allowed
                 </div>
+                <!-- Actions -->
                 <div class="manual-btn-row">
                     <button class="btn-manual-decode" onclick="manualDecodeMorse()">&#9986; Decode to Text</button>
                     <button class="btn-clear" onclick="clearManualMorse()">&#128465; Clear</button>
@@ -572,19 +580,23 @@
                         <span id="audioIcon">🔇</span> Sound
                     </button>
                 </div>
+                <!-- Decoded Morse Display -->
                 <div class="manual-decode-result" id="manualDecodeResult"></div>
             </div>
-            <div class="manual-decode-result" id="manualDecodeResult"></div>
+            <!-- Status -->
             <div class="status-bar">
                 <div class="status-dot" id="decodeStatus"></div>
                 <span id="manualDecodeCount">Ready</span>
             </div>
         </div>
+        <!-- Morse Audio Decoder -->
         <div class="card">
             <h2><span class="icon">&#127907;</span> Decode &mdash; Morse Audio to Text</h2>
+            <!-- Current Symbol Display -->
             <div class="current-symbol" id="currentSymbol">&#8212;</div>
+            <!-- WaveForm, only works on Mic input (file input goes too fast) -->
             <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
-
+            <!-- Detected Morse Code-->
             <div class="detected-morse-label" id="decodeOutputLabel">&#128220; Detected Text</div>
             <div class="decode-output" id="decodeOutput">
                 <span id="decodeText"></span><span class="cursor"></span>
@@ -592,7 +604,7 @@
             <!-- ── Detected Morse Code Display (shown during file decode) ── -->
             <div class="detected-morse-label" id="detectedMorseLabel">&#128220; Detected Morse Code</div>
             <div class="detected-morse-display" id="detectedMorseDisplay"></div>
-
+            <!-- Settings -->
             <div class="settings-row">
                 <div class="setting">
                     <label>Sensitivity</label>
@@ -605,15 +617,18 @@
                     <span class="val" id="dotEstimateVal">120 ms</span>
                 </div>
             </div>
+            <!-- Actions -->
             <div class="btn-row">
                 <button class="btn-decode" id="btnListen" onclick="startListening()">&#127907; Start Mic</button>
-                <button class="btn-stop" id="btnStopDecode" onclick="stopDecoding()" style="display:none;">&#9647; Stop</button>
+                <button class="btn-stop" id="btnStopDecode" onclick="stopDecoding()" style="display:none;">🛑 Stop</button>
                 <button class="btn-clear" onclick="clearDecode()">&#128465; Clear</button>
             </div>
+            <!-- File Upload -->
             <div class="file-input-wrapper">
                 <label class="file-label" for="fileInput">&#128196; Upload Audio File (mp3, m4a, wav, ogg)</label>
                 <input type="file" id="fileInput" accept="audio/*" onchange="handleFileUpload(this.files[0])">
             </div>
+            <!-- Status -->
             <div class="status-bar">
                 <div class="status-dot" id="decodeStatus"></div>
                 <span id="decodeStatusText">Ready</span>
@@ -624,6 +639,10 @@
             <h2><span class="icon">&#128218;</span> Morse Code Reference</h2>
             <div class="reference" id="refTable"></div>
         </div>
+    </div>
+    <div>
+        <!-- Footer -->
+        <h6>&#0169 - Lassens.IT - Made with ❤️. Version: 1.0.5</h6>
     </div>
     <script>
         // ─── Morse Code Map ──────────────────────────────────────────────
@@ -663,19 +682,31 @@
         var encodeInput = document.getElementById('encodeInput');
         var morsePreview = document.getElementById('morsePreview');
         encodeInput.addEventListener('input', function () {
-            var text = encodeInput.value.toUpperCase();
-            var parts = [];
+    // Preserve cursor position
+    const start = encodeInput.selectionStart;
+    const end = encodeInput.selectionEnd;
 
-            for (var i = 0; i < text.length; i++) {
-                if (text[i] === ' ') {
-                    parts.push('/'); // ✅ word separator
-                } else if (MORSE_MAP[text[i]]) {
-                    parts.push(MORSE_MAP[text[i]]);
-                }
-            }
+    // Force uppercase (keeps numbers + punctuation intact)
+    encodeInput.value = encodeInput.value.toUpperCase();
 
-            morsePreview.textContent = parts.join(' ');
-        });
+    // Restore cursor position (prevents jump)
+    encodeInput.setSelectionRange(start, end);
+
+    var text = encodeInput.value;
+    var parts = [];
+
+    for (var i = 0; i < text.length; i++) {
+        if (text[i] === ' ') {
+            parts.push('/'); // word separator
+        } else if (MORSE_MAP[text[i]]) {
+            parts.push(MORSE_MAP[text[i]]);
+        }
+        // ✅ Unknown punctuation/numbers are simply ignored if not mapped
+        // (you already support most punctuation in MORSE_MAP 👍)
+    }
+
+    morsePreview.textContent = parts.join(' ');
+});
         encodeInput.dispatchEvent(new Event('input'));
         // ─── Settings Display ────────────────────────────────────────────
         function bindSlider(sid, vid, suf) {
