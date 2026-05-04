@@ -750,91 +750,79 @@
         <h6>&#0169 (2026) - Lassens.IT - Made with ❤️. Version: 1.1.0</h6>
     </div>
     <script>
-        class MorseDetector {
-            constructor(getAnalyzer, getAudioCtx) {
-                this.getAnalyzer = getAnalyzer;
-                this.getAudioCtx = getAudioCtx;
+        class SignalDetector {
+            constructor(sampleRate) {
+                this.sampleRate = sampleRate;
 
                 this.lockedFrequency = null;
                 this.lockConfidence = 0;
+
                 this.smoothedEnergy = 0;
-
-                this.inSignal = false;
-                this.signalStart = 0;
-                this.lastSignalEnd = 0;
-
-                this.dotEstimate = 120;
-                this.signalDurations = [];
-
-                this.symbolBuffer = '';
+                this.noiseFloor = 0;
             }
 
-            getFrequencyData() {
-                const analyzer = this.getAnalyzer();
-                const data = new Uint8Array(analyzer.frequencyBinCount);
-                analyzer.getByteFrequencyData(data);
-                return data;
+            goertzel(samples, targetFreq) {
+                const N = samples.length;
+
+                const k = Math.round(0.5 + (N * targetFreq) / this.sampleRate);
+                const omega = (2 * Math.PI * k) / N;
+                const coeff = 2 * Math.cos(omega);
+
+                let s_prev = 0;
+                let s_prev2 = 0;
+
+                for (let i = 0; i < N; i++) {
+                    const s = samples[i] + coeff * s_prev - s_prev2;
+                    s_prev2 = s_prev;
+                    s_prev = s;
+                }
+
+                const power = s_prev2 * s_prev2 + s_prev * s_prev - coeff * s_prev * s_prev2;
+
+                return power / (N * N);
             }
 
-            detectPeak(freqData) {
-                let maxVal = 0, maxIndex = 0;
+            detectFrequency(samples, baseFreq) {
+                let candidates;
 
-                for (let i = 0; i < freqData.length; i++) {
-                    if (freqData[i] > maxVal) {
-                        maxVal = freqData[i];
-                        maxIndex = i;
+                if (!this.lockedFrequency) {
+                    candidates = [400, 600, 800, 1000, 1200];
+                } else {
+                    candidates = [
+                        this.lockedFrequency - 100,
+                        this.lockedFrequency,
+                        this.lockedFrequency + 100
+                    ];
+                }
+
+                let bestFreq = null;
+                let bestEnergy = 0;
+
+                for (let f of candidates) {
+                    if (f < 300 || f > 2000) continue;
+
+                    const e = this.goertzel(samples, f);
+
+                    if (e > bestEnergy) {
+                        bestEnergy = e;
+                        bestFreq = f;
                     }
                 }
 
-                const nyquist = this.getAudioCtx().sampleRate / 2;
-                const freq = (maxIndex / freqData.length) * nyquist;
-
-                return { freq, strength: maxVal / 255 };
+                return { freq: bestFreq, energy: bestEnergy };
             }
 
-            getToneEnergy(freqData, freq) {
-                const nyquist = this.getAudioCtx().sampleRate / 2;
-                let bin = Math.round(freq / nyquist * freqData.length);
-                bin = Math.max(0, Math.min(freqData.length - 1, bin));
+            process(samples, baseFreq, sensitivity) {
+                const best = this.detectFrequency(samples, baseFreq);
 
-                let sum = 0, count = 0;
-
-                for (let i = -2; i <= 2; i++) {
-                    const idx = bin + i;
-                    if (idx >= 0 && idx < freqData.length) {
-                        sum += freqData[idx];
-                        count++;
-                    }
-                }
-
-                return (sum / count) / 255;
-            }
-
-            getNoiseRatio(freqData, freq) {
-                const nyquist = this.getAudioCtx().sampleRate / 2;
-                let bin = Math.round(freq / nyquist * freqData.length);
-                bin = Math.max(0, Math.min(freqData.length - 1, bin));
-
-                const tone = freqData[bin];
-
-                let total = 0;
-                for (let i = 0; i < freqData.length; i++) total += freqData[i];
-
-                return tone / ((total / freqData.length) + 1);
-            }
-
-            update(now, baseFreq, sensitivity) {
-                const freqData = this.getFrequencyData();
-                const peak = this.detectPeak(freqData);
-
-                // Lock logic
-                if (peak.strength > 0.2 && Math.abs(peak.freq - baseFreq) < 250) {
+                // --- Frequency lock ---
+                if (best.energy > 0.00001) {
                     if (!this.lockedFrequency) {
-                        this.lockedFrequency = peak.freq;
+                        this.lockedFrequency = best.freq;
                         this.lockConfidence = 1;
                     } else {
                         this.lockedFrequency =
-                            this.lockedFrequency * 0.8 + peak.freq * 0.2;
+                            this.lockedFrequency * 0.7 + best.freq * 0.3;
 
                         this.lockConfidence = Math.min(10, this.lockConfidence + 1);
                     }
@@ -846,25 +834,23 @@
                     this.lockedFrequency = null;
                 }
 
-                const targetFreq = this.lockConfidence > 3
-                    ? Math.round(this.lockedFrequency / 10) * 10
-                    : baseFreq;
+                // --- Noise floor ---
+                if (this.noiseFloor === 0) {
+                    this.noiseFloor = best.energy;
+                } else {
+                    this.noiseFloor = this.noiseFloor * 0.95 + best.energy * 0.05;
+                }
 
-                // Energy
-                const rawEnergy = this.getToneEnergy(freqData, targetFreq);
-                this.smoothedEnergy = this.smoothedEnergy * 0.7 + rawEnergy * 0.3;
+                // --- Smooth energy ---
+                this.smoothedEnergy = this.smoothedEnergy * 0.7 + best.energy * 0.3;
 
-                const energy = this.smoothedEnergy;
-                const ratio = this.getNoiseRatio(freqData, targetFreq);
-
-                const threshold = sensitivity / 200;
+                // --- Adaptive threshold ---
+                const threshold = this.noiseFloor * (1 + sensitivity / 10);
 
                 return {
-                    energy,
-                    ratio,
-                    threshold,
-                    targetFreq,
-                    freqData
+                    energy: this.smoothedEnergy,
+                    threshold: threshold,
+                    freq: this.lockedFrequency || baseFreq
                 };
             }
         }
@@ -921,7 +907,7 @@
         })();
 
         // Set up morse code object
-        var detector = new MorseDetector(getAnalyzer, getAudioCtx);
+        var detector = new SignalDetector(getAudioCtx().sampleRate);
 
         // Live Preview of encoding text to morse
         var encodeInput = document.getElementById('encodeInput');
@@ -1567,61 +1553,74 @@
         }
 
         // File Decoder (Direct Buffer Analysis)
-        function decodeFileBuffer(buffer) { 
-            // Set up vars
-            var samples = buffer.getChannelData(0);
-            var sampleRate = buffer.sampleRate;
-            var windowMs = 20;
-            var windowSize = Math.floor(sampleRate * (windowMs / 1000));
-            var threshold = 0.05;
-            var state = 'silence';
-            var windowStart = 0;
-            var durations = [];
-            var decodedText = '';
-            var symbolBuffer = '';
-            var dotEst = 0.12;
-            var morseSequence = '';  // Track the raw morse symbols detected
+        function decodeFileBuffer(buffer) {
+            const samples = buffer.getChannelData(0);
+            const sampleRate = buffer.sampleRate;
 
-            // Loop through each sample
-            for (var i = 0; i < samples.length; i += windowSize) {
-                var sum = 0;
-                var end = Math.min(i + windowSize, samples.length);
+            const detector = new SignalDetector(sampleRate);
 
-                // Combine samples in window
-                for (var j = i; j < end; j++) { 
-                    sum += samples[j] * samples[j];
-                }
+            const windowMs = 20;
+            const windowSize = Math.floor(sampleRate * (windowMs / 1000));
 
-                // Check for sound or silence
-                var rms = Math.sqrt(sum / (end - i));
-                var newState = rms > threshold ? 'signal' : 'silence';
-                
-                // Only update if things have changed
+            let state = 'silence';
+            let windowStart = 0;
+
+            let durations = [];
+
+            let dotEst = 0.12; // seconds
+
+            let decodedText = '';
+            let symbolBuffer = '';
+            let morseSequence = '';
+            let currentWordLetters = [];
+
+            const baseFreq = 700;
+            const sensitivity = 20;
+
+            // --- Main detection loop (uses shared SignalDetector) ---
+            for (let i = 0; i < samples.length; i += windowSize) {
+                const end = Math.min(i + windowSize, samples.length);
+                const windowSamples = samples.subarray(i, end);
+
+                const result = detector.process(windowSamples, baseFreq, sensitivity);
+
+                let onThreshold = result.threshold;
+                let offThreshold = result.threshold * 0.6;
+
+                const newState =
+                    state === 'signal'
+                        ? (result.energy > offThreshold ? 'signal' : 'silence')
+                        : (result.energy > onThreshold ? 'signal' : 'silence');
+
                 if (newState !== state) {
-                    durations.push({ type: state, dur: (i - windowStart) / sampleRate });
-                    state = newState; windowStart = i;
+                    durations.push({
+                        type: state,
+                        dur: (i - windowStart) / sampleRate
+                    });
+
+                    state = newState;
+                    windowStart = i;
                 }
             }
 
-            // Save duration
+            // Final segment
             if (windowStart < samples.length) {
-                durations.push({ type: state, dur: (samples.length - windowStart) / sampleRate });
+                durations.push({
+                    type: state,
+                    dur: (samples.length - windowStart) / sampleRate
+                });
             }
 
-            var currentWordLetters = [];
-
-            // Loop through each duration
-            for (var k = 0; k < durations.length; k++) {
-                var seg = durations[k];
-                // Check to see if we have a signal
-                if (seg.type === 'signal') { 
-                    // Attempt to verify using duration and dot estimate
-                    var sym = (seg.dur < dotEst * 1.8) ? '.' : '-';
+            // --- Decode durations into Morse + text ---
+            for (let seg of durations) {
+                if (seg.type === 'signal') {
+                    const sym = (seg.dur < dotEst * 1.8) ? '.' : '-';
                     symbolBuffer += sym;
-                    var est = (sym === '.') ? seg.dur : seg.dur / 3;
+
+                    const est = (sym === '.') ? seg.dur : seg.dur / 3;
                     dotEst = dotEst * 0.85 + est * 0.15;
-                } else { 
-                    // Silence
+
+                } else {
                     if (seg.dur >= dotEst * 7) {
                         // Word boundary
                         if (symbolBuffer.length > 0) {
@@ -1630,33 +1629,40 @@
                             symbolBuffer = '';
                         }
 
-                        // Update the morse sequence and decoded text
-                        morseSequence += (morseSequence ? ' / ' : '') + currentWordLetters.join(' ');
+                        if (currentWordLetters.length > 0) {
+                            morseSequence += (morseSequence ? ' / ' : '') +
+                                currentWordLetters.join(' ');
+                        }
+
                         decodedText += ' ';
                         currentWordLetters = [];
+
                     } else if (seg.dur >= dotEst * 3) {
                         // Letter boundary
-                        currentWordLetters.push(symbolBuffer);
-                        decodedText += morseToChar(symbolBuffer); // ✅ ADD THIS
-                        symbolBuffer = '';
+                        if (symbolBuffer.length > 0) {
+                            currentWordLetters.push(symbolBuffer);
+                            decodedText += morseToChar(symbolBuffer);
+                            symbolBuffer = '';
+                        }
                     }
-                    // Short silence between symbols within a letter — do nothing
                 }
             }
 
-            // Flush remaining
+            // Flush remainder
             if (symbolBuffer.length > 0) {
                 currentWordLetters.push(symbolBuffer);
                 decodedText += morseToChar(symbolBuffer);
-
-                // Update the sequence to add word separator if needed
-                if (currentWordLetters.length > 0) {
-                    morseSequence += (morseSequence ? ' / ' : '') + currentWordLetters.join(' ');
-                }
             }
 
-            // Return both decoded text and morse code encoded text
-            return { decodedText: decodedText, morseSequence: morseSequence };
+            if (currentWordLetters.length > 0) {
+                morseSequence += (morseSequence ? ' / ' : '') +
+                    currentWordLetters.join(' ');
+            }
+
+            return {
+                decodedText,
+                morseSequence
+            };
         }
 
         // Decoder Controls
@@ -1811,12 +1817,17 @@
             var baseFreq = parseInt(document.getElementById('toneFreq').value);
             var sensitivity = parseInt(document.getElementById('sensitivity').value);
 
-            var result = detector.update(now, baseFreq, sensitivity);
+            // var result = detector.update(now, baseFreq, sensitivity);
+
+            const analyzer = getAnalyzer();
+            const timeData = new Float32Array(analyzer.fftSize);
+            analyzer.getFloatTimeDomainData(timeData);
+
+            var result = detector.process(timeData, baseFreq, sensitivity);
 
             var energy = result.energy;
-            var ratio = result.ratio;
             var threshold = result.threshold;
-            var targetFreq = result.targetFreq;
+            var targetFreq = result.freq;
             var onThreshold = threshold;
             var offThreshold = threshold * 0.6;
 
@@ -1827,38 +1838,33 @@
                 'Listening (' + Math.round(targetFreq) + ' Hz)';
 
             // Check energy threshold
-            if (energy > onThreshold && ratio > 2.5 && !ds.inSignal) { 
-                // Signal Start
+            if (energy > onThreshold && !ds.inSignal) {
                 ds.inSignal = true;
                 ds.signalStart = now;
-            } else if (energy < offThreshold && ds.inSignal) { 
-                // Energy below threshold
+            } else if (energy < offThreshold && ds.inSignal) {
                 ds.inSignal = false;
+
                 var signalDur = now - ds.signalStart;
                 var dotEst = ds.dotDurationEstimate;
-                // Attempt to get symbol
+
                 var symbol = (signalDur < dotEst * 1.8) ? '.' : '-';
                 ds.symbolBuffer += symbol;
-                // Update UI
+
                 document.getElementById('currentSymbol').textContent = ds.symbolBuffer;
-                // State updates and calculations
+
                 ds.lastSignalEnd = now;
-                // Attempt to calculate symbol duration
+
                 var estDur = (symbol === '.') ? signalDur : signalDur / 3;
                 ds.signalDurations.push(estDur);
-                // Shift if necessary
-                if (ds.signalDurations.length > 20) { 
+
+                if (ds.signalDurations.length > 20) {
                     ds.signalDurations.shift();
                 }
-                // Calculate signal duration sum
-                var sum = 0;
-                for (var k = 0; k < ds.signalDurations.length; k++) { 
-                    sum += ds.signalDurations[k];
-                }
 
-                // Attempt dot duration estimate (max 50)
+                var sum = ds.signalDurations.reduce((a, b) => a + b, 0);
                 ds.dotDurationEstimate = Math.max(50, sum / ds.signalDurations.length);
             }
+
             // Silence calculation
             if (!ds.inSignal && ds.symbolBuffer.length > 0) {
                 var silence = now - ds.lastSignalEnd;
