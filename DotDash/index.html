@@ -39,6 +39,10 @@
             box-sizing: border-box;
         }
 
+        a {
+            color: var(--accent);
+        }
+
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: var(--bg);
@@ -604,6 +608,21 @@
                     letter-spacing: 1.5px;
                 }
         }
+
+        /* New Reset Button Style */
+        .btn-reset {
+            background: #3a3e4d;
+            color: #b0b0c0;
+            border: 1px solid #454960;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .btn-reset:hover:not(:disabled) {
+                background: #454960;
+                color: #fff;
+            }
     </style>
 </head>
 <body>
@@ -741,6 +760,7 @@
                 <button class="btn-download" id="btnDownload" onclick="downloadMorseWAV()">&#11015; Download WAV</button>
                 <button class="btn-clear" onclick="stopPlaying()">🛑 Stop</button>
                 <button class="btn-clear" onclick="clearEncode()">&#128465; Clear</button>
+                <button class="btn-reset" onclick="resetControls()" title="Reset all sliders to default">🛠 Reset Sliders</button>
             </div>
             <!-- Status -->
             <div class="status-bar">
@@ -822,6 +842,7 @@
                 <label class="file-label" for="fileInput">&#128196; Upload Audio File (mp3, m4a, wav, ogg)</label>
                 <input type="file" id="fileInput" accept="audio/*" onchange="handleFileUpload(this.files[0])">
                 <button class="btn-clear" onclick="clearDecode()">&#128465; Clear</button>
+                <button class="btn-reset" onclick="resetControls()" title="Reset all sliders to default">🛠 Reset Sliders</button>
             </div>
             <!-- Status -->
             <div class="status-bar">
@@ -837,7 +858,7 @@
     </div>
     <div>
         <!-- Footer -->
-        <h6>&#0169 (2026) - Lassens.IT - Made with ❤️. Version: 1.2.1</h6>
+        <h6>&#0169 (2026) - Lassens.IT - Made with ❤️. Version: 1.2.1 - <a href="https://buymeacoffee.com/hanf" title="Support Us">Buy us a drink</a></h6>
     </div>
     <script>
         var MORSE_MAP = {};
@@ -2269,6 +2290,38 @@
             }
         }
 
+        function resetControls() {
+            var dotDurEl = document.getElementById('dotDuration');
+            var toneFreqEl = document.getElementById('toneFreq');
+            var volumeEl = document.getElementById('volume');
+            var sensitivityEl = document.getElementById('sensitivity');
+            var dotEstimateEl = document.getElementById('dotEstimate');
+            
+            // Reset values to defaults
+            dotDurEl.value = 120;
+            toneFreqEl.value = 700;
+            volumeEl.value = 70;
+            sensitivityEl.value = 20;
+            dotEstimateEl.value = 120;
+            
+            // Trigger events to update text displays next to sliders
+            dotDurEl.dispatchEvent(new Event('input'));
+            toneFreqEl.dispatchEvent(new Event('input'));
+            volumeEl.dispatchEvent(new Event('input'));
+            sensitivityEl.dispatchEvent(new Event('input'));
+            dotEstimateEl.dispatchEvent(new Event('input'));
+            
+            // Visual feedback (optional: flash buttons or status)
+            var statusText = document.getElementById('encodeStatusText');
+            var encodeStatus = document.getElementById('encodeStatus');
+            encodeStatus.className = 'status-dot rendering';
+            statusText.textContent = 'Settings Reset';
+            
+            setTimeout(function() {
+                encodeStatus.className = 'status-dot';
+                statusText.textContent = 'Ready';
+            }, 1000);
+        }
     </script>
 </body>
 </html>
