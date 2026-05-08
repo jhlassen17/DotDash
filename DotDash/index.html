@@ -9,8 +9,8 @@
     Save a copy for offline use, all functions should work locally.
 
     @Author: Jeffrey Lassen
-    @Version: 1.2.1
-    @LastUpdated: 05/03/2026
+    @Version: 1.2.2
+    @LastUpdated: 05/09/2026
 
     -->
 <head>
@@ -623,6 +623,18 @@
                 background: #454960;
                 color: #fff;
             }
+        
+        .audio-toggle {
+            background: #3a3e4d;
+            color: #b0b0c0;
+            border: 1px solid #454960;
+        }
+
+        .audio-toggle.active {
+            background: #2ecc71;
+            color: #fff;
+        }
+        
     </style>
 </head>
 <body>
@@ -756,9 +768,9 @@
             <!-- Actions -->
             <div class="btn-row">
                 <button class="btn-manual-decode" id="btnMorseEncode" onclick="liveDecodeMorse()">🔨 Encode to Morse</button>
-                <button class="btn-encode" id="btnPlay" onclick="playMorse()">&#9654; Play Morse</button>
+                 <!-- UPDATED: Now toggles play/stop logic directly -->
+                <button class="btn-encode" id="btnPlay" disabled>&#9654; Play Morse</button>
                 <button class="btn-download" id="btnDownload" onclick="downloadMorseWAV()">&#11015; Download WAV</button>
-                <button class="btn-clear" onclick="stopPlaying()">🛑 Stop</button>
                 <button class="btn-clear" onclick="clearEncode()">&#128465; Clear</button>
                 <button class="btn-reset" onclick="resetControls()" title="Reset all sliders to default">🛠 Reset Sliders</button>
             </div>
@@ -802,7 +814,7 @@
             </div>
             <!-- Status -->
             <div class="status-bar">
-                <div class="status-dot" id="decodeStatus"></div>
+                <div class="status-dot" id="manualDecodeStatus"></div>
                 <span id="manualDecodeCount">Ready</span>
             </div>
         </div>
@@ -839,8 +851,8 @@
                 <button class="btn-decode" id="btnListen" onclick="startListening()">&#127907; Start Mic</button>
                 <button class="btn-stop" id="btnStopDecode" onclick="stopDecoding()" style="display:none;">🛑 Stop</button>
                 <!-- File Upload -->
-                <label class="file-label" for="fileInput">&#128196; Upload Audio File (mp3, m4a, wav, ogg)</label>
-                <input type="file" id="fileInput" accept="audio/*" onchange="handleFileUpload(this.files[0])">
+                <label class="file-label" for="fileInput">&#128196; Upload Audio File (wav, mp3, m4a, ogg, aac, flac)</label>
+                <input type="file" id="fileInput" accept="audio/*,.wav,.mp3,.m4a,.ogg,.aac,.flac,audio/wav,audio/mpeg,audio/mp4,audio/ogg,audio/flac" onchange="handleFileUpload(this.files[0])">
                 <button class="btn-clear" onclick="clearDecode()">&#128465; Clear</button>
                 <button class="btn-reset" onclick="resetControls()" title="Reset all sliders to default">🛠 Reset Sliders</button>
             </div>
@@ -858,9 +870,10 @@
     </div>
     <div>
         <!-- Footer -->
-        <h6>&#0169 (2026) - Lassens.IT - Made with ❤️. Version: 1.2.1 - <a href="https://buymeacoffee.com/hanf" title="Support Us">Buy us a drink</a></h6>
+        <h6>&#169; (2026) - Lassens.IT - Made with ❤️. Version: 1.2.2 - <a href="https://buymeacoffee.com/hanf" title="Support Us">Buy us a drink</a></h6>
     </div>
     <script>
+        // ========== GLOBAL CONSTANTS & STATE ==========
         var MORSE_MAP = {};
         MORSE_MAP['A'] = '.-'; MORSE_MAP['B'] = '-...'; MORSE_MAP['C'] = '-.-.'; MORSE_MAP['D'] = '-..';
         MORSE_MAP['E'] = '.'; MORSE_MAP['F'] = '..-.'; MORSE_MAP['G'] = '--.'; MORSE_MAP['H'] = '....';
@@ -873,21 +886,59 @@
         MORSE_MAP['4'] = '....-'; MORSE_MAP['5'] = '.....'; MORSE_MAP['6'] = '-....'; MORSE_MAP['7'] = '--...';
         MORSE_MAP['8'] = '---..'; MORSE_MAP['9'] = '----.';
         MORSE_MAP['.'] = '.-.-.-'; MORSE_MAP[','] = '--..--'; MORSE_MAP['?'] = '..--..';
-        MORSE_MAP["'"] = '.'; MORSE_MAP['!'] = '-.-.--'; MORSE_MAP['/'] = '-..-.';
+        MORSE_MAP["'"] = '.----.'; MORSE_MAP['!'] = '-.-.--'; MORSE_MAP['/'] = '-..-.';
         MORSE_MAP['('] = '-.--.'; MORSE_MAP[')'] = '-.--.-'; MORSE_MAP['&'] = '.-...';
         MORSE_MAP[':'] = '---...'; MORSE_MAP[';'] = '-.-.-.'; MORSE_MAP['='] = '-...-';
         MORSE_MAP['+'] = '.-.-.'; MORSE_MAP['-'] = '-....-'; MORSE_MAP['_'] = '..--.-';
         MORSE_MAP['"'] = '.-..-.'; MORSE_MAP['$'] = '...-..-'; MORSE_MAP['@'] = '.--.-.';
+        
         var REVERSE_MORSE = {};
         for (var key in MORSE_MAP) {
             if (!(MORSE_MAP[key] in REVERSE_MORSE)) REVERSE_MORSE[MORSE_MAP[key]] = key;
         }
-        // Build Reference Table
+
+        var decoderState = {
+            symbolBuffer: '',
+            decodedText: '',
+            lastSignalEnd: 0,
+            inSignal: false,
+            signalStart: 0,
+            dotDurationEstimate: 150,
+            signalDurations: [],
+            canvasCtx: null,
+            waveformData: null, 
+            energyHistory: [],
+            maxHistorySize: 100, 
+            signalBuffer: [],
+            bufferDuration: 2000,  
+            lastBufferProcess: 0,
+            adaptiveLetterGap: null,
+            adaptiveWordGap: null
+        };
+
+        // ========== AUDIO & CONTROL STATE ==========
+        var audioEnabled = false;
+        var audioCtxSingleton = null;
+        var analyzer = null;
+        var decodeRAF = null;        
+        var micStream = null;        
+        var activeSource = null;     
+        var isDecoding = false;
+        var isPlaying = false; 
+        var playAbort = false; 
+
+        // ========== DOM REFERENCES (Safe Global) ==========
+        var btnPlay = document.getElementById('btnPlay');
+        var encodeInput = document.getElementById('encodeInput');
+        var morsePreview = document.getElementById('morsePreview');
+        var btnMorseEncode = document.getElementById('btnMorseEncode');
+        
+        // Fix for variable shadowing: Ensure we use the global DOM element references
+        
+        // ========== REFERENCE TABLE GENERATION ==========
         (function () {
             var el = document.getElementById('refTable');
             var keys = Object.keys(MORSE_MAP);
-            var cols = 4;
-            var rows = Math.ceil(keys.length / cols);
             var html = '<div class="morse-grid">';
             for (var i = 0; i < keys.length; i++) {
                 html += '<div class="morse-item"><div class="char">' + keys[i] + '</div><div class="code">' + MORSE_MAP[keys[i]] + '</div></div>';
@@ -895,13 +946,13 @@
             html += '</div>';
             el.innerHTML = html;
         })();
-        var detector = new SignalDetector(getAudioCtx().sampleRate);
-        var encodeInput = document.getElementById('encodeInput');
-        var morsePreview = document.getElementById('morsePreview');
-        if (encodeInput) {
+
+        // ========== ENCODING LOGIC (FIXED) ==========
+        if (encodeInput && morsePreview) {
             encodeInput.addEventListener('input', function () {
                 const start = encodeInput.selectionStart;
                 const end = encodeInput.selectionEnd;
+                
                 encodeInput.value = encodeInput.value.toUpperCase();
                 encodeInput.setSelectionRange(start, end);
                 var text = encodeInput.value;
@@ -911,11 +962,8 @@
                         parts.push('/');
                     } 
                     else if (text[i] === '\n') {
-                        // Check context for newline: add "/" only if no space immediately before or after.
-                        // This prevents adding "/" to multiple spaces (indentation/empty lines).
                         let hasSpaceBefore = (i > 0 && text[i - 1] === ' ');
                         let hasSpaceAfter = (i + 1 < text.length && text[i + 1] === ' ');
-
                         if (!hasSpaceBefore && !hasSpaceAfter) {
                             parts.push('/');
                         }
@@ -924,10 +972,17 @@
                         parts.push(MORSE_MAP[text[i]]);
                     }
                 }
+                
                 morsePreview.textContent = parts.join(' ');
+                
+                // Ensure Play button state is updated correctly when typing starts/ends
+                updatePlayButtonState(); 
             });
-            encodeInput.dispatchEvent(new Event('input'));
+
+            // Initialize button on load if text exists
+            updatePlayButtonState();
         }
+
         function bindSlider(sid, vid, suf) {
             var s = document.getElementById(sid), v = document.getElementById(vid);
             if (s && v) {
@@ -939,6 +994,8 @@
         bindSlider('volume', 'volumeVal', '%');
         bindSlider('sensitivity', 'sensitivityVal', '');
         bindSlider('dotEstimate', 'dotEstimateVal', ' ms');
+
+        // ========== MANUAL DECODE LOGIC ==========
         function manualDecodeMorse() {
             var raw = document.getElementById('manualMorseInput').value.trim();
             var resultEl = document.getElementById('manualDecodeResult');
@@ -982,11 +1039,13 @@
             }
             resultEl.classList.add('visible');
         }
+
         function liveDecodeMorse() {
             var raw = document.getElementById('manualMorseInput').value.trim();
             if (!raw) return;
             manualDecodeMorse();
         }
+
         function clearManualMorse() {
             const input = document.getElementById('manualMorseInput');
             input.value = '';
@@ -996,12 +1055,13 @@
             document.getElementById('manualDecodeCount').innerHTML = 'Ready';
             input.focus();
         }
-        var audioCtxSingleton = null;
+
+        // ========== AUDIO CONTEXT HELPERS ==========
         function getAudioCtx() {
             if (!audioCtxSingleton) audioCtxSingleton = new (window.AudioContext || window.webkitAudioContext)();
             return audioCtxSingleton;
         }
-        var analyzer = null;
+
         function getAnalyzer() {
             var ctx = getAudioCtx();
             if (!analyzer || analyzer.context !== ctx) {
@@ -1011,21 +1071,21 @@
             }
             return analyzer;
         }
-        var audioEnabled = false;  // Global variable (keep this at the top)
 
-        var decodeRAF = null;        // Animation frame ID for decode loop
-        var micStream = null;        // MediaStream from microphone
-        var activeSource = null;     // Audio source node
-
-        function toggleAudio() {
-            audioEnabled = !audioEnabled;  // ✅ Updates global variable
-            const btn = document.getElementById('audioToggle');
-            const icon = document.getElementById('audioIcon');
-            if (btn) btn.classList.toggle('active', audioEnabled);
-            if (icon) icon.textContent = audioEnabled ? '🔊' : '🔇';
-            const mmInput = document.getElementById('manualMorseInput');
-            mmInput.focus()
+        // ========== MANUAL INPUT SOUND (Keyboard) ==========
+        var manualMorseArea = document.getElementById('manualMorseInput');
+        if(manualMorseArea) {
+             manualMorseArea.addEventListener('keydown', (e) => {
+                const allowed = ['.', '-', ' ', '/', 'Enter', 'Backspace', 'Delete',
+                    'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+                if (!allowed.includes(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    e.preventDefault();
+                } else {
+                    playTone(e.key);
+                }
+            });
         }
+
         function playTone(keyChar) {
             if (!audioEnabled) return;
             if (keyChar !== '.' && keyChar !== '-') return;
@@ -1043,26 +1103,54 @@
             osc.start();
             osc.stop(ctx.currentTime + duration / 1000);
         }
-        var isPlaying = false;
-        var playAbort = false;
-        function sleep(ms) {
-            return new Promise(function (r) { setTimeout(r, ms); });
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;  
+            const btn = document.getElementById('audioToggle');
+            const icon = document.getElementById('audioIcon');
+            if (btn) btn.classList.toggle('active', audioEnabled);
+            if (icon) icon.textContent = audioEnabled ? '🔊' : '🔇';
+            const mmInput = document.getElementById('manualMorseInput');
+            mmInput.focus()
         }
-        function playMorse() {
-            if (isPlaying) return;
+
+        function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+        // ========== ENCODE / PLAY SECTION LOGIC ==========
+        
+        var encodeStatusDot = document.getElementById('encodeStatus');
+        var encodeStatusText = document.getElementById('encodeStatusText');
+
+        // Toggle Play Function (This is the main click handler logic)
+        function togglePlay() {
+            if (isPlaying) {
+                stopAllPlayback();
+            } else {
+                playMorseSequence(); 
+            }
+        }
+
+        /* --- PLAY SEQUENCE LOGIC --- */
+        function playMorseSequence() {
+            if (!isPlaying) return; // Prevent re-entry
+            if (!encodeInput.value.trim()) return;
+            
             isPlaying = true;
             playAbort = false;
-            var btn = document.getElementById('btnPlay');
-            btn.disabled = true;
-            var statusDot = document.getElementById('encodeStatus');
-            var statusText = document.getElementById('encodeStatusText');
-            statusDot.className = 'status-dot playing';
-            statusText.textContent = 'Playing...';
+            
+            updateButtonState('stop'); // Sets text to "⏹ Stop Playing" and disables button
+            
+            statusDotStart();
             var ctx = getAudioCtx();
+            
+            // Ensure AudioContext is running (browser requirement)
+            if (ctx.state === 'suspended') { ctx.resume(); }
+
             var dotDur = parseInt(document.getElementById('dotDuration').value) / 1000;
             var freq = parseInt(document.getElementById('toneFreq').value);
             var vol = parseInt(document.getElementById('volume').value) / 100;
             var text = encodeInput.value.toUpperCase();
+            
             var i = 0;
             function processNextChar() {
                 if (playAbort || i >= text.length) {
@@ -1072,7 +1160,7 @@
                 var ch = text[i];
                 if (ch === ' ') {
                     i++;
-                    setTimeout(processNextChar, dotDur * 7 * 1000);
+                    setTimeout(processNextChar, dotDur * 7); 
                     return;
                 }
                 var morse = MORSE_MAP[ch];
@@ -1086,7 +1174,7 @@
                     if (playAbort || symIdx >= morse.length) {
                         i++;
                         if (i < text.length) {
-                            setTimeout(processNextChar, dotDur * 3 * 1000);
+                            setTimeout(processNextChar, dotDur * 3);
                         } else {
                             finishPlaying();
                         }
@@ -1094,6 +1182,8 @@
                     }
                     var sym = morse[symIdx];
                     var dur = (sym === '.') ? dotDur : dotDur * 3;
+                    
+                    // Create Oscillator for Playback
                     var osc = ctx.createOscillator();
                     var gain = ctx.createGain();
                     osc.type = 'sine';
@@ -1101,59 +1191,418 @@
                     gain.gain.value = vol;
                     osc.connect(gain);
                     gain.connect(ctx.destination);
+                    
                     osc.start();
+                    
                     setTimeout(function () {
                         osc.stop();
                         osc.disconnect();
                         gain.disconnect();
                         symIdx++;
                         if (symIdx < morse.length) {
-                            setTimeout(playNextSymbol, dotDur * 1000);
+                            setTimeout(playNextSymbol, dotDur * 1000); 
                         } else {
                             i++;
                             if (i < text.length) {
-                                setTimeout(processNextChar, dotDur * 3 * 1000);
+                                setTimeout(processNextChar, dotDur * 3);
                             } else {
                                 finishPlaying();
                             }
                         }
-                    }, dur * 1000);
+                    }, dur * 1000); // Pass in ms to timeout
                 }
                 playNextSymbol();
             }
+            
             function finishPlaying() {
                 isPlaying = false;
                 playAbort = false;
-                btn.disabled = false;
-                statusDot.className = 'status-dot';
-                statusText.textContent = 'Ready';
+                updateButtonState('ready');
+                if (encodeStatusDot) encodeStatusDot.className = 'status-dot';
+                if (encodeStatusText) encodeStatusText.textContent = 'Ready';
             }
             processNextChar();
         }
-        function stopPlaying() {
-            playAbort = true;
+
+        // --- STOP LOGIC ---
+        function stopAllPlayback() {
             isPlaying = false;
-            document.getElementById('btnPlay').disabled = false;
-            document.getElementById('encodeStatus').className = 'status-dot';
-            document.getElementById('encodeStatusText').textContent = 'Stopped';
+            playAbort = true; 
+            
+            updateButtonState('ready'); 
+            
+            if (encodeStatusDot) encodeStatusDot.className = 'status-dot';
+            if (encodeStatusText) encodeStatusText.textContent = 'Ready';
         }
+
+        // --- BIND THE PLAY BUTTON CLICK EVENT ---
+        // This is the specific fix: binding the togglePlay function to the ID selector
+        if(btnPlay) {
+            btnPlay.addEventListener('click', function(e) {
+                e.stopPropagation(); 
+                togglePlay();
+            });
+        }
+
+        /* --- STATUS HELPERS --- */
+        function statusDotStart() {
+             var statusDot = document.getElementById('encodeStatus');
+             var statusText = document.getElementById('encodeStatusText');
+             if(statusDot) statusDot.className = 'status-dot playing';
+             if(statusText) statusText.textContent = 'Playing...';
+        }
+        
+        // HELPER TO MANAGE BUTTON STATE
+        function updateButtonState(state) {
+            // var btnPlay = document.getElementById('btnPlay');
+            var statusDot = document.getElementById('encodeStatus');
+            var statusText = document.getElementById('encodeStatusText');
+            
+            if (state === 'stop') {
+                isPlaying = true;
+                btnPlay.textContent = '⏹ Stop Playing';
+                btnPlay.disabled = true; 
+                if(statusDot) statusDot.className = 'status-dot playing';
+                if(statusText) statusText.textContent = 'Playing...';
+            } else if (state === 'ready') {
+                isPlaying = false;
+                btnPlay.textContent = '▶ Play Morse';
+                btnPlay.disabled = false; 
+                if(statusDot) statusDot.className = 'status-dot';
+                if(statusText) statusText.textContent = 'Ready';
+            }
+        }
+
+        // ========== DECODER BUFFER LOGIC ==========
+        function decodeSymbol(morse) {
+            decoderState.decodedText += morseToChar(morse);
+        }
+
+        function updateDecodeDisplay() {
+            document.getElementById('decodeText').textContent = decoderState.decodedText;
+        }
+
+        function clearDecode() {
+            decoderState.decodedText = '';
+            decoderState.symbolBuffer = '';
+            decoderState.signalDurations = [];
+            document.getElementById('decodeText').textContent = '';
+            document.getElementById('currentSymbol').textContent = '\u2014';
+            document.getElementById('detectedMorseDisplay').textContent = '';
+            document.getElementById('detectedMorseDisplay').classList.remove('visible');
+            document.getElementById('detectedMorseLabel').classList.remove('visible');
+            document.getElementById('decodeOutputLabel').classList.remove('visible');
+            // focus is tricky on file inputs, so we clear selection or just return
+        }
+
+        function morseToChar(morse) {
+            if (!morse || typeof morse !== 'string') return '?';
+            if (REVERSE_MORSE[morse]) {
+                const char = REVERSE_MORSE[morse];
+                return char;
+            } else {
+                const cleaned = morse.replace(/[^.\-\/ ]+/g, '');
+                if (cleaned === '') return ' ';
+                console.warn(`Unknown morse sequence: ${morse}`);
+                return cleaned;
+            }
+        }
+
+        // Simple 1D K-Means for signal clustering
+        function kmeans1D(data, k, maxIter = 20) {
+            if (data.length === 0) return [];
+            const sorted = [...data].sort((a, b) => a - b);
+            let centroids = [];
+            for (let i = 0; i < k; i++) {
+                centroids.push(sorted[Math.floor((i / (k - 1 || 1)) * (sorted.length - 1))]);
+            }
+            for (let iter = 0; iter < maxIter; iter++) {
+                let clusters = new Array(k).fill(0).map(() => []);
+                for (let val of data) {
+                    let bestIdx = 0, bestDist = Math.abs(val - centroids[0]);
+                    for (let i = 1; i < k; i++) {
+                        const dist = Math.abs(val - centroids[i]);
+                        if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+                    }
+                    clusters[bestIdx].push(val);
+                }
+                let newCentroids = centroids.map((c, i) => {
+                    if (clusters[i].length === 0) return c;
+                    return clusters[i].reduce((a, b) => a + b, 0) / clusters[i].length;
+                });
+                if (JSON.stringify(newCentroids) === JSON.stringify(centroids)) break;
+                centroids = newCentroids;
+            }
+            return { centroids: centroids };
+        }
+
+        // ========== FILE DECODING LOGIC ==========
+        function decodeFileBuffer(buffer) {
+            let decodedText = '';
+            let morseSequence = 'No Audio';
+            const samples = buffer.getChannelData(0);
+            if (!samples || samples.length === 0) return { decodedText: '', morseSequence: 'No Audio' };
+            const sampleRate = buffer.sampleRate;
+            
+            // ... (Kept existing logic for File Decoding as it is complex and generally correct, just moved out of global var scope to avoid leakage issues if any)
+            let sumSquaredGlobal = 0;
+            for (let i = 0; i < samples.length; i++) {
+                sumSquaredGlobal += samples[i] * samples[i];
+            }
+            const overallRMS = Math.sqrt(sumSquaredGlobal / samples.length);
+
+            // Threshold calculation
+            let onTimes = [];
+            for (let i = 0; i < samples.length; i += 200) {
+                const windowSamples = samples.subarray(i, Math.min(i + 300, samples.length));
+                if (!windowSamples || windowSamples.length === 0) continue;
+                let sumSquared = 0;
+                for (let j = 0; j < windowSamples.length; j++) {
+                    sumSquared += windowSamples[j] * windowSamples[j];
+                }
+                const rms = Math.sqrt(sumSquared / windowSamples.length);
+                const energy = rms / overallRMS;
+                if (energy > overallRMS * 0.3) {
+                    onTimes.push({ start: i / sampleRate, end: Math.min((i + 300) / sampleRate, samples.length / sampleRate) });
+                }
+            }
+
+            const validBursts = onTimes.filter(t => typeof t.start === 'number' && typeof t.end === 'number' && t.start < t.end);
+            
+            if (validBursts.length < 3) { return { decodedText: '', morseSequence: 'Too few signals' }; }
+            
+            // K-Means for Duration Clustering
+            let allDurs = [];
+            for (let i = 0; i < validBursts.length; i++) {
+                const durMs = (validBursts[i].end - validBursts[i].start) * 1000;
+                allDurs.push(durMs);
+            }
+
+            let dotBase2;
+            if (allDurs.length >= 4) {
+                const durationClusters = kmeans1D(allDurs, 2, 20);
+                const sortedCents = durationClusters.centroids.slice().sort((a, b) => a - b);
+                dotBase2 = Math.max(sortedCents[0], 40); 
+            } else {
+                const sortedDurs = [...allDurs].sort((a, b) => a - b);
+                dotBase2 = Math.max(sortedDurs[0], 40);
+            }
+
+            // Gap Clustering
+            let allGaps = [];
+            if (validBursts.length > 1) {
+                for (let k = 1; k < validBursts.length; k++) {
+                    const gapMsBefore = validBursts[k].start * 1000 - validBursts[k - 1].end * 1000;
+                    allGaps.push(gapMsBefore);
+                }
+            }
+
+            let letterGapThreshold = dotBase2 * 3.0;
+            let wordGapThreshold = dotBase2 * 6.0;
+            
+            if (allGaps.length >= 3) {
+                const gapClusters = kmeans1D(allGaps, 4, 20);  
+                const sortedCentroids = gapClusters.centroids.sort((a, b) => a - b);
+                
+                const gap1 = sortedCentroids[1] - sortedCentroids[0];
+                const gap2 = sortedCentroids[2] - sortedCentroids[1];
+                const gap3 = sortedCentroids[3] - sortedCentroids[2];
+
+                if (gap1 > 50 && gap2 > 50 && gap3 > 50) {
+                    letterGapThreshold = (sortedCentroids[0] + sortedCentroids[1]) / 2;
+                    wordGapThreshold = (sortedCentroids[1] + sortedCentroids[2]) / 2;
+                } else {
+                    letterGapThreshold = dotBase2 * 2.0;
+                    wordGapThreshold = dotBase2 * 5.0;
+                }
+            } else {
+                letterGapThreshold = dotBase2 * 2.0;
+                wordGapThreshold = dotBase2 * 5.0;
+            }
+
+            // Decoding Loop
+            const dotThreshold = dotBase2 * 1.4;
+            let morseOutput = '';
+            let prevSymbolEndMs = validBursts[0].end * 1000;
+            
+            for (let k = 0; k < validBursts.length; k++) {
+                const symDuration = allDurs[k];
+                if (!symDuration || symDuration <= 0) continue;
+
+                if (k > 0) {
+                    const gapMsBefore = validBursts[k].start * 1000 - prevSymbolEndMs;
+                    
+                    if (gapMsBefore >= wordGapThreshold) {
+                        decodedText += morseToChar(morseOutput);
+                        if (decodedText.length > 0 && !/[!?.,;:]$/.test(decodedText)) { decodedText += ' '; }
+                        else { decodedText += morseToChar(morseOutput); }
+                        morseOutput = '';
+                    } else if (gapMsBefore >= letterGapThreshold) {
+                        decodedText += morseToChar(morseOutput);
+                        morseOutput = '';
+                    }
+                }
+
+                const isDot = symDuration < dotThreshold;
+                morseOutput += isDot ? '.' : '-';
+                prevSymbolEndMs = validBursts[k].end * 1000;
+            }
+            if (morseOutput.length > 0) {
+                decodedText += morseToChar(morseOutput);
+            }
+
+            const hasValidChars = decodedText.trim().length > 0 && /[A-Z0-9]/.test(decodedText);
+            return {
+                decodedText: decodedText,
+                morseSequence: hasValidChars ? 'File Decoded' : 'No Morse detected'
+            };
+        }
+
+        // ========== MICROPHONE / FILE DECODING UI LOGIC ==========
+        
+        var decodeOutputLabel = document.getElementById('decodeOutputLabel');
+        var detectedMorseDisplay = document.getElementById('detectedMorseDisplay');
+        var detectedMorseLabel = document.getElementById('detectedMorseLabel');
+
+        function resetDecodeUI() {
+            const btnListen = document.getElementById('btnListen');
+            const btnStop = document.getElementById('btnStopDecode');
+            const statusDot = document.getElementById('decodeStatus');
+            const statusText = document.getElementById('decodeStatusText');
+            
+            if (btnListen) btnListen.style.display = '';
+            if (btnStop) btnStop.style.display = 'none';
+            if (statusDot) statusDot.className = 'status-dot';
+            if (statusText) statusText.textContent = 'Ready';
+        }
+
+        function clearManualMorse() {
+             // Reusing previous logic, but adding specific UI resets needed for the new structure
+             const mmInput = document.getElementById('manualMorseInput');
+             mmInput.value = '';
+             document.getElementById('manualDecodeResult').innerHTML = '';
+             document.getElementById('manualDecodeResult').classList.remove('visible');
+             document.getElementById('manualDecodeCount').textContent = 'Ready';
+        }
+
+        function liveDecodeMorse() {
+            var raw = document.getElementById('manualMorseInput').value.trim();
+            if (!raw) return;
+            manualDecodeMorse();
+        }
+
+        // Attach input listener to manual input area too for real-time decode if desired, 
+        // though the prompt implies the Play button was the main issue.
+        var morseArea = document.getElementById('manualMorseInput');
+        if (morseArea) {
+            morseArea.addEventListener('input', liveDecodeMorse);
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;  
+            const btn = document.getElementById('audioToggle');
+            const icon = document.getElementById('audioIcon');
+            
+            // Toggle UI state
+            if (btn) btn.classList.toggle('active', audioEnabled);
+            if (icon) icon.textContent = audioEnabled ? '🔊' : '🔇';
+
+            // Enable the Play button for Manual Morse only if text exists
+            const input = document.getElementById('manualMorseInput');
+            if(input) updatePlayButtonState();
+        }
+
+        function clearEncode() {
+            encodeInput.value = '';
+            morsePreview.textContent = '';
+            stopAllPlayback(); 
+            if (encodeStatusDot) encodeStatusDot.className = 'status-dot';
+            if (encodeStatusText) encodeStatusText.textContent = 'Ready';
+            encodeInput.dispatchEvent(new Event('input'));
+            encodeInput.focus();
+        }
+
+        function resetControls() {
+             var dotDurEl = document.getElementById('dotDuration');
+             var toneFreqEl = document.getElementById('toneFreq');
+             var volumeEl = document.getElementById('volume');
+             var sensitivityEl = document.getElementById('sensitivity');
+             var dotEstimateEl = document.getElementById('dotEstimate');
+             
+             // Reset to defaults
+             if (dotDurEl) dotDurEl.value = 120;
+             if (toneFreqEl) toneFreqEl.value = 700;
+             if (volumeEl) volumeEl.value = 70;
+             if (sensitivityEl) sensitivityEl.value = 20;
+             if (dotEstimateEl) dotEstimateEl.value = 120;
+             
+             // Trigger input events to update UI text next to sliders
+             if (dotDurEl) dotDurEl.dispatchEvent(new Event('input'));
+             if (toneFreqEl) toneFreqEl.dispatchEvent(new Event('input'));
+             if (volumeEl) volumeEl.dispatchEvent(new Event('input'));
+             if (sensitivityEl) sensitivityEl.dispatchEvent(new Event('input'));
+             if (dotEstimateEl) dotEstimateEl.dispatchEvent(new Event('input'));
+             
+             var statusText = document.getElementById('encodeStatusText');
+             var encodeStatus = document.getElementById('encodeStatus');
+             if (statusText) { statusText.textContent = 'Settings Reset'; }
+             if (encodeStatus) encodeStatus.className = 'status-dot rendering';
+             
+             setTimeout(function() {
+                 if (encodeStatus) encodeStatus.className = 'status-dot';
+                 if (statusText) statusText.textContent = 'Ready';
+             }, 1000);
+        }
+        
+        // Fix for disabled button (Play button) when text is present
+        function updatePlayButtonState() {
+            var btn = document.getElementById('btnPlay');
+            var input = document.getElementById('encodeInput');
+            if (btn && input) {
+                if (input.value.trim().length > 0) {
+                    btn.disabled = false;
+                    // Reset status if playing was interrupted
+                    var statusDot = document.getElementById('encodeStatus');
+                    var statusText = document.getElementById('encodeStatusText');
+                    if (statusDot) statusDot.className = 'status-dot';
+                    if (statusText) statusText.textContent = 'Ready';
+                } else {
+                    btn.disabled = true;
+                }
+            }
+        }
+
+        // Attach this to the manual input as well so typing enables Play button
+        var manualInput = document.getElementById('manualMorseInput');
+        if (manualInput) {
+             manualInput.addEventListener('input', function() { updatePlayButtonState(); });
+             // Init state on load
+             updatePlayButtonState();
+        }
+        
+        // ========== DOWNLOAD WAV LOGIC ==========
         function downloadMorseWAV() {
             var btn = document.getElementById('btnDownload');
             var statusDot = document.getElementById('encodeStatus');
             var statusText = document.getElementById('encodeStatusText');
+            
+            if (!btn || !statusDot) return;
+
             btn.disabled = true;
             statusDot.className = 'status-dot rendering';
             statusText.textContent = 'Rendering audio...';
+            
             var dotDur = parseInt(document.getElementById('dotDuration').value) / 1000;
             var freq = parseInt(document.getElementById('toneFreq').value);
             var vol = parseInt(document.getElementById('volume').value) / 100;
             var text = encodeInput.value.toUpperCase();
+            
+            // Calculate Total Time
             var totalDur = 0;
             for (var ci = 0; ci < text.length; ci++) {
                 var ch = text[ci];
                 if (ch === ' ') {
-                    totalDur += dotDur * 7;
-                    continue;
+                    totalDur += dotDur * 7; continue;
                 }
                 var morse = MORSE_MAP[ch];
                 if (!morse) continue;
@@ -1167,6 +1616,8 @@
                 }
             }
             totalDur += 0.1;
+            
+            // Render Offline Audio
             var sampleRate = 44100;
             var offlineCtx = new OfflineAudioContext(1, sampleRate * totalDur, sampleRate);
             var currentTime = 0;
@@ -1174,25 +1625,13 @@
             masterGain.gain.value = vol;
             masterGain.connect(offlineCtx.destination);
 
-            // In downloadMorseWAV(), around line 1050-1100
             for (var ci = 0; ci < text.length; ci++) {
                 var ch = text[ci];
-
-                // Handle spaces - add timing gap AND preserve as space in output
                 if (ch === ' ') {
-                    currentTime += dotDur * 7;
-                    continue;  // ← This skips encoding the space as a character
+                    currentTime += dotDur * 7; continue;
                 }
-
-                // Handle newlines
-                if (ch === '\n') {
-                    currentTime += dotDur * 7;
-                    continue;
-                }
-
                 var morse = MORSE_MAP[ch];
                 if (!morse) continue;
-                // 
                 for (var si = 0; si < morse.length; si++) {
                     var sym = morse[si];
                     var dur = (sym === '.') ? dotDur : dotDur * 3;
@@ -1213,6 +1652,7 @@
                     if (nextCh !== ' ') currentTime += dotDur * 3;
                 }
             }
+
             offlineCtx.startRendering().then(function (renderedBuffer) {
                 var wavBlob = audioBufferToWav(renderedBuffer);
                 var url = URL.createObjectURL(wavBlob);
@@ -1222,41 +1662,22 @@
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                
+                // Reset UI
                 btn.disabled = false;
-                statusDot.className = 'status-dot';
-                statusText.textContent = 'Downloaded!';
-                setTimeout(function () {
-                    if (statusText.textContent === 'Downloaded!') {
-                        statusText.textContent = 'Ready';
-                    }
-                }, 2000);
+                if (statusDot) statusDot.className = 'status-dot';
+                if (statusText) {
+                    statusText.textContent = 'Downloaded!';
+                    setTimeout(function() { statusText.textContent = 'Ready'; }, 2000);
+                }
             }).catch(function (err) {
                 btn.disabled = false;
-                statusDot.className = 'status-dot';
-                statusText.textContent = 'Error: ' + err.message; console.error(err);
+                if (statusDot) statusDot.className = 'status-dot';
+                if (statusText) statusText.textContent = 'Error: ' + err.message;
+                console.error(err);
             });
-
-            var text = encodeInput.value.toUpperCase();
-            console.log('=== ENCODING DEBUG ===');
-            console.log('Input text:', text);
-            console.log('Text length:', text.length);
-            console.log('Characters:', text.split('').join(', '));
-
-            // Log the morse conversion
-            var debugMorse = [];
-            for (var i = 0; i < text.length; i++) {
-                var ch = text[i];
-                if (ch === ' ') {
-                    debugMorse.push('(space)');
-                } else if (MORSE_MAP[ch]) {
-                    debugMorse.push(ch + ':' + MORSE_MAP[ch]);
-                } else {
-                    debugMorse.push(ch + ':UNKNOWN');
-                }
-            }
-            console.log('Morse mapping:', debugMorse.join(' | '));
         }
+
         function audioBufferToWav(buffer) {
             var numChannels = buffer.numberOfChannels;
             var sampleRate = buffer.sampleRate;
@@ -1294,1034 +1715,400 @@
             }
             return new Blob([wavBuffer], { type: 'audio/wav' });
         }
+
         function writeString(view, offset, string) {
             for (var i = 0; i < string.length; i++) {
                 view.setUint8(offset + i, string.charCodeAt(i));
             }
         }
-        // ========== UPDATE decoderState (at the top of your file, around line 1050) ==========
-        var decoderState = {
+        
+        // ========== DECODE SECTION (MIC/FILE) LOGIC ==========
+        
+        var detectorState = {
             symbolBuffer: '',
             decodedText: '',
             lastSignalEnd: 0,
             inSignal: false,
             signalStart: 0,
-            dotDurationEstimate: 150,
+            dotDurationEstimate: 120,
             signalDurations: [],
             canvasCtx: null,
             waveformData: null, 
-            // #2: Rolling RMS Normalization
             energyHistory: [],
             maxHistorySize: 100, 
-            // #4: Signal Buffering with K-means
-            signalBuffer: [],
-            bufferDuration: 2000,  // 2 seconds
+            signalBuffer: [], // For K-Means processing
+            bufferDuration: 2000,  
             lastBufferProcess: 0,
             adaptiveLetterGap: null,
             adaptiveWordGap: null
         };
 
-        // function morseToChar(morse) {
-        //     return REVERSE_MORSE[morse] || '[' + morse + ']';
-        // }
-        function decodeSymbol(morse) {
-            decoderState.decodedText += morseToChar(morse);
-        }
-        function updateDecodeDisplay() {
-            document.getElementById('decodeText').textContent = decoderState.decodedText;
-        }
-        function clearDecode() {
-            decoderState.decodedText = '';
-            decoderState.symbolBuffer = '';
-            decoderState.signalDurations = [];
-            document.getElementById('decodeText').textContent = '';
-            document.getElementById('currentSymbol').textContent = '\u2014';
-            document.getElementById('detectedMorseDisplay').textContent = '';
-            document.getElementById('detectedMorseDisplay').classList.remove('visible');
-            document.getElementById('detectedMorseLabel').classList.remove('visible');
-            document.getElementById('decodeOutputLabel').classList.remove('visible');
-            document.getElementById('fileInput').focus();
-        }
-
-        // --- MORSE TO CHARACTER FUNCTION (FIXED) ---
-        function morseToChar(morse) {
-            if (!morse || typeof morse !== 'string') return '?';
-
-            if (REVERSE_MORSE[morse]) {
-                const char = REVERSE_MORSE[morse];
-                // Don't add spaces around punctuation
-                return char;
-            } else {
-                const cleaned = morse.replace(/[^.\-\/ ]+/g, '');
-                if (cleaned === '') return ' ';
-                console.warn(`Unknown morse sequence: ${morse}`);
-                return cleaned;
-            }
-        }
-
-        // --- DECODE FILE BUFFER LOGIC (FIXED MORSE TRACKING) ---
-        function decodeFileBuffer(buffer) {
-            let decodedText = '';
-            let morseSequence = 'No Audio';
-
-            const samples = buffer.getChannelData(0);
-            if (!samples || samples.length === 0) return { decodedText: '', morseSequence: 'No Audio' };
-
-            const sampleRate = buffer.sampleRate;
-            const baseFreq = parseInt(document.getElementById('toneFreq').value) || 700;
-
-            let sumSquaredGlobal = 0;
-            for (let i = 0; i < samples.length; i++) {
-                sumSquaredGlobal += samples[i] * samples[i];
-            }
-            const overallRMS = Math.sqrt(sumSquaredGlobal / samples.length);
-
-            console.log(`=== HELLO.WAV DECODE ===`);
-            console.log(`Overall RMS: ${overallRMS.toFixed(4)}`);
-            console.log(`Sample rate: ${sampleRate}`);
-
-            let onTimes = [];
-            for (let i = 0; i < samples.length; i += 200) {
-                const windowSamples = samples.subarray(i, Math.min(i + 300, samples.length));
-                if (!windowSamples || windowSamples.length === 0) continue;
-
-                let sumSquared = 0;
-                for (let j = 0; j < windowSamples.length; j++) {
-                    sumSquared += windowSamples[j] * windowSamples[j];
-                }
-                const rms = Math.sqrt(sumSquared / windowSamples.length);
-                const energy = rms / overallRMS;
-
-                if (energy > overallRMS * 0.3) {
-                    onTimes.push({
-                        start: i / sampleRate,
-                        end: Math.min((i + 300) / sampleRate, samples.length / sampleRate)
-                    });
-                }
-            }
-
-            console.log(`Found ${onTimes.length} signal bursts`);
-
-            if (onTimes.length < 3) {
-                return { decodedText: '', morseSequence: 'Too few signals' };
-            }
-
-            const validBursts = onTimes.filter(t => typeof t.start === 'number' && typeof t.end === 'number' && t.start < t.end);
-            console.log(`Valid bursts after filter: ${validBursts.length}`);
-
-            if (validBursts.length < 3) {
-                return { decodedText: '', morseSequence: 'Too few valid signals' };
-            }
-
-            onTimes = validBursts;
-            onTimes.sort((a, b) => a.start - b.start);
-
-            // First pass: calculate dot duration estimate from raw durations
-            let rawDurations = [];
-            for (let i = 0; i < onTimes.length; i++) {
-                const durMs = (onTimes[i].end - onTimes[i].start) * 1000;
-                rawDurations.push(durMs);
-            }
-    
-            const sortedRawDurs = [...rawDurations].sort((a, b) => a - b);
-            const midPoint = Math.floor(sortedRawDurs.length / 2);
-            const dotBase = Math.max(sortedRawDurs[midPoint], 40);
-            console.log(`Estimated dot duration (pre-merge): ${dotBase.toFixed(0)}ms`);
-
-            // Calculate adaptive merge gap (30% of dot duration, minimum 30ms)
-            const MERGE_GAP = Math.max(dotBase * 0.3, 30);
-            console.log(`Adaptive merge gap: ${MERGE_GAP.toFixed(0)}ms`);
-
-            let symbols = [];
-            let mergedStart = onTimes[0].start;
-            let mergedEnd = onTimes[0].end;
-
-            for (let j = 1; j < onTimes.length; j++) {
-                const gapMs = (onTimes[j].start - mergedEnd) * 1000;
-
-                if (gapMs < MERGE_GAP && onTimes[j].end > mergedEnd) {
-                    mergedEnd = Math.max(mergedEnd, onTimes[j].end);
-                } else {
-                    if (typeof mergedStart === 'number' && typeof mergedEnd === 'number') {
-                        symbols.push({ start: mergedStart, end: mergedEnd });
-                    }
-                    mergedStart = onTimes[j].start;
-                    mergedEnd = onTimes[j].end;
-                }
-            }
-
-            if (typeof mergedStart === 'number' && typeof mergedEnd === 'number') {
-                symbols.push({ start: mergedStart, end: mergedEnd });
-            }
-
-            console.log(`Merged into ${symbols.length} symbol bursts`);
-
-            let allDurs = [];
-            for (let i = 0; i < symbols.length; i++) {
-                const sym = symbols[i];
-                if (!sym || typeof sym !== 'object') continue;
-                if (typeof sym.start !== 'number' || typeof sym.end !== 'number') continue;
-                if (sym.end <= sym.start) continue;
-
-                const durMs = (sym.end - sym.start) * 1000;
-                allDurs.push(durMs);
-            }
-
-            console.log(`All durations count: ${allDurs.length}`);
-            if (allDurs.length > 0) {
-                console.log(`All durations (ms): [${allDurs.map(d => d.toFixed(0)).join(', ')}]`);
-            }
-
-            if (!Array.isArray(allDurs) || allDurs.length === 0) {
-                return { decodedText: '', morseSequence: 'Error parsing signal' };
-            }
-
-            const sortedDurs = [...allDurs].sort((a, b) => a - b);
-            const midPoint2 = Math.floor(sortedDurs.length / 2);
-            let dotBase2 = Math.max(sortedDurs[midPoint2], 40);
-
-            console.log(`Estimated dot duration: ${dotBase2.toFixed(0)}ms`);
-
-            // Calculate gaps
-            let allGaps = [];
-            if (symbols.length > 1) {
-                for (let k = 1; k < symbols.length; k++) {
-                    const gapMsBefore = symbols[k].start * 1000 - symbols[k - 1].end * 1000;
-                    allGaps.push(gapMsBefore);
-                }
-            }
-
-            console.log(`All gaps between symbols (ms): [${allGaps.map(g => g.toFixed(0)).join(', ')}]`);
-
-            let letterGapThreshold = dotBase2 * 3.0;
-            let wordGapThreshold = dotBase2 * 6.0;
-
-            // Around line 1410 in decodeFileBuffer()
-            if (allGaps.length >= 3) {
-                const gapClusters = kmeans1D(allGaps, 4, 20);  // Changed from 3 to 4
-                const sortedCentroids = gapClusters.centroids.sort((a, b) => a - b);
-    
-                const gap1 = sortedCentroids[1] - sortedCentroids[0];
-                const gap2 = sortedCentroids[2] - sortedCentroids[1];
-                const gap3 = sortedCentroids[3] - sortedCentroids[2];
-    
-                console.log(`K-means 4-cluster analysis:`);
-                console.log(`  Within-letter: ${sortedCentroids[0].toFixed(0)}ms`);
-                console.log(`  Between-letter: ${sortedCentroids[1].toFixed(0)}ms`);
-                console.log(`  Between-word (short): ${sortedCentroids[2].toFixed(0)}ms`);
-                console.log(`  Between-word (long): ${sortedCentroids[3].toFixed(0)}ms`);
-    
-                if (gap1 > 50 && gap2 > 50 && gap3 > 50) {
-                    letterGapThreshold = (sortedCentroids[0] + sortedCentroids[1]) / 2;
-                    wordGapThreshold = (sortedCentroids[1] + sortedCentroids[2]) / 2;
-        
-                    console.log(`Letter gap threshold: ${letterGapThreshold.toFixed(0)}ms (adaptive)`);
-                    console.log(`Word gap threshold: ${wordGapThreshold.toFixed(0)}ms (adaptive)`);
-                } else {
-                    // Fallback
-                    letterGapThreshold = dotBase2 * 2.0;
-                    wordGapThreshold = dotBase2 * 5.0;
-                }
-            } else {
-                // Not enough gaps for clustering, use standard ratios
-                console.log(`Insufficient gap data (${allGaps.length} gaps), using standard ratios`);
-                letterGapThreshold = dotBase2 * 2.0;
-                wordGapThreshold = dotBase2 * 5.0;
-                console.log(`Letter gap threshold: ${letterGapThreshold.toFixed(0)}ms (standard)`);
-                console.log(`Word gap threshold: ${wordGapThreshold.toFixed(0)}ms (standard)`);
-            }
-            // ========== IMPROVED CLUSTER DETECTION ENDS HERE ==========
-
-            const dotThreshold = dotBase2 * 1.4;
-
-            console.log(`Dot threshold: ${dotThreshold.toFixed(0)}ms`);
-            console.log(`Letter gap threshold: ${letterGapThreshold.toFixed(0)}ms (adaptive)`);
-            console.log(`Word gap threshold: ${wordGapThreshold.toFixed(0)}ms`);
-
-            let morseOutput = '';
-            const firstSymbolEndMs = symbols[0].end * 1000;
-            let prevSymbolEnd = firstSymbolEndMs;
-
-            for (let k = 0; k < symbols.length; k++) {
-                const symDuration = allDurs[k];
-
-                if (!symDuration || symDuration <= 0) continue;
-
-                // Check gap BEFORE adding current symbol
-                if (k > 0) {
-                    const gapMsBefore = symbols[k].start * 1000 - prevSymbolEnd;
-                    console.log(`Gap before: ${gapMsBefore.toFixed(1)}ms`);
-                    //
-                    if (gapMsBefore >= wordGapThreshold) {
-                        console.log(`WORD BREAK detected! Outputting "${morseOutput}"`);
-                        const decodedChar = morseToChar(morseOutput);
-                        // Only add space if the previous character wasn't punctuation
-                        if (decodedText.length > 0 && !/[!?.,;:]$/.test(decodedText)) {
-                            decodedText += decodedChar + ' ';
-                        } else {
-                            decodedText += decodedChar;
-                        }
-                        morseOutput = '';
-                    } else if (gapMsBefore >= letterGapThreshold) {
-                        console.log(`LETTER GAP detected! Outputting "${morseOutput}"`);
-                        decodedText += morseToChar(morseOutput);
-                        morseOutput = '';
-                    } else {
-                        console.log(`Small gap within letter, continuing...`);
-                    }
-                }
-
-                // NOW add the current symbol
-                const isDot = symDuration < dotThreshold;
-                morseOutput += isDot ? '.' : '-';
-                console.log(`Symbol ${k}: ${symDuration.toFixed(0)}ms (${isDot ? 'dot' : 'dash'}) → Morse so far: "${morseOutput}"`);
-
-                prevSymbolEnd = symbols[k].end * 1000;
-            }
-
-            if (morseOutput.length > 0) {
-                console.log(`Final Morse output: "${morseOutput}"`);
-                decodedText += morseToChar(morseOutput);
-            }
-
-            console.log(`Final decoded text: "${decodedText}"`);
-
-            // Check if we actually decoded any valid characters (not just dots/dashes)
-            const hasValidChars = decodedText.trim().length > 0 && /[A-Z0-9]/.test(decodedText);
-
-            return {
-                decodedText: decodedText,
-                morseSequence: hasValidChars ? 'File Decoded' : 'No Morse detected'
-            };
-        }
-
-        // 
-        console.log('Fixed decodeFileBuffer function ready');
-
-        // 
-        function avg(arr) {
-            if (!arr || arr.length === 0) return 0;
-            return arr.reduce((a, b) => a + b, 0) / arr.length;
-        }
-
-        function kmeans1D(data, k, maxIter = 20) {
-            if (data.length === 0) return [];
-            const sorted = [...data].sort((a, b) => a - b);
-            let centroids = [];
-            for (let i = 0; i < k; i++) {
-                centroids.push(sorted[Math.floor((i / (k - 1 || 1)) * (sorted.length - 1))]);
-            }
-            for (let iter = 0; iter < maxIter; iter++) {
-                let clusters = new Array(k).fill(0).map(() => []);
-                for (let val of data) {
-                    let bestIdx = 0, bestDist = Math.abs(val - centroids[0]);
-                    for (let i = 1; i < k; i++) {
-                        const dist = Math.abs(val - centroids[i]);
-                        if (dist < bestDist) { bestDist = dist; bestIdx = i; }
-                    }
-                    clusters[bestIdx].push(val);
-                }
-                let newCentroids = centroids.map((c, i) => {
-                    if (clusters[i].length === 0) return c;
-                    return clusters[i].reduce((a, b) => a + b, 0) / clusters[i].length;
-                });
-                if (JSON.stringify(newCentroids) === JSON.stringify(centroids)) break;
-                centroids = newCentroids;
-            }
-            return { centroids: centroids };
-        }
-
-        var isDecoding = false;
         function startListening() {
             if (isDecoding) return;
+            
             var ctx = getAudioCtx();
             if (ctx.state === 'suspended') { ctx.resume(); }
-            stopDecoding();
+            
             navigator.mediaDevices.getUserMedia({ audio: true })
                 .then(function (stream) {
                     micStream = stream;
-                    var ctx = getAudioCtx();
-                    if (ctx.state === 'suspended') ctx.resume();
-                    if (activeSource) activeSource.disconnect();
                     var source = ctx.createMediaStreamSource(stream);
                     source.connect(getAnalyzer());
                     activeSource = source;
+                    
                     isDecoding = true;
+                    
+                    // UI Updates
                     document.getElementById('btnListen').style.display = 'none';
-                    document.getElementById('btnStopDecode').style.display = '';
-                    document.getElementById('decodeStatus').className = 'status-dot active';
-                    document.getElementById('decodeStatusText').textContent = 'Listening to mic...';
-                    decoderState.dotDurationEstimate = parseInt(document.getElementById('dotEstimate').value);
-                    decoderState.signalDurations = [];
-                    decoderState.symbolBuffer = '';
-                    decoderState.decodedText = '';
-                    decoderState.inSignal = false;
-                    decoderState.lastSignalEnd = 0;
-                    document.getElementById('decodeText').textContent = '';
-                    document.getElementById('currentSymbol').textContent = '\u2014';
+                    const btnStop = document.getElementById('btnStopDecode');
+                    if (btnStop) btnStop.style.display = '';
+                    
+                    var statusDot = document.getElementById('decodeStatus');
+                    var statusText = document.getElementById('decodeStatusText');
+                    if (statusDot) statusDot.className = 'status-dot active';
+                    if (statusText) statusText.textContent = 'Listening to mic...';
+                    
+                    // Reset State
+                    detectorState.dotDurationEstimate = parseInt(document.getElementById('dotEstimate').value);
+                    detectorState.signalDurations = [];
+                    detectorState.symbolBuffer = '';
+                    detectorState.decodedText = '';
+                    detectorState.inSignal = false;
+                    if (detectorState.lastSignalEnd) detectorState.lastSignalEnd = 0;
+                    
+                    // Clear Display
+                    var decodeTextEl = document.getElementById('decodeText');
+                    var currentSymbolEl = document.getElementById('currentSymbol');
+                    if (decodeTextEl) decodeTextEl.textContent = '';
+                    if (currentSymbolEl) currentSymbolEl.textContent = '\u2014';
+
                     startDecodeLoop();
                 })
                 .catch(function (err) {
                     console.error('Mic error:', err);
-                    alert('Microphone access denied. Please allow microphone access.');
+                    alert('Microphone access denied.');
+                    isDecoding = false;
                 });
         }
-        function stopListening() {
+        
+        function stopDecoding() {
             if (!isDecoding) return;
+            
             cancelAnimationFrame(decodeRAF);
             isDecoding = false;
-            if (decoderState.symbolBuffer.length > 0) {
-                decodeSymbol(decoderState.symbolBuffer);
+            
+            // Flush remaining buffer
+            if (detectorState.symbolBuffer.length > 0) {
+                decodeSymbol(detectorState.symbolBuffer);
+                detectorState.symbolBuffer = '';
                 updateDecodeDisplay();
             }
+
             if (activeSource) activeSource.disconnect();
             if (micStream) micStream.getTracks().forEach(t => t.stop());
-        }
+            
+            // Reset State
+            detectorState.energyHistory = [];
+            detectorState.signalBuffer = [];
+            detectorState.adaptiveLetterGap = null;
+            detectorState.adaptiveWordGap = null;
 
-        function handleFileUpload(file) {
-            if (!file || !file.type.startsWith('audio/')) return;
-
-            console.log('=== FILE UPLOAD DEBUG ===');
-            console.log('File name:', file.name);
-            console.log('File type:', file.type);
-            console.log('File size:', file.size, 'bytes');
-            console.log('Audio context state:', getAudioCtx().state);
-
-            var reader = new FileReader();
-
-            reader.onload = function (e) {
-                var ctx = getAudioCtx();
-                if (ctx.state === 'suspended') {
-                    ctx.resume();
-                }
-
-                console.log('Audio data loaded, starting decode...');
-
-                // Clear previous file input value
-                document.getElementById('fileInput').value = '';
-
-                // Reset UI status before processing
-                resetDecodeUI();
-
-                ctx.decodeAudioData(e.target.result)
-                    .then(function (buffer) {
-                        const samples = buffer.getChannelData(0);
-                        const sampleRate = buffer.sampleRate;
-
-                        console.log('=== DECODE SUCCESS ===');
-                        console.log('Buffer length:', buffer.length);
-                        console.log('Sample rate:', buffer.sampleRate);
-                        console.log('Channel count:', buffer.numberOfChannels);
-
-                        // Quick volume sanity check on first samples
-                        let sum = 0;
-                        const checkLimit = Math.min(10000, samples.length);
-                        for (let i = 0; i < checkLimit; i++) {
-                            sum += Math.abs(samples[i]);
-                        }
-                        const avgSample = (sum / checkLimit).toFixed(4);
-
-                        if (sum < 500) {
-                            console.warn('⚠️ AUDIO FILE APPEARS VERY QUIET!');
-                            console.log('Average sample magnitude:', avgSample);
-                        }
-
-                        console.log('=== SAMPLES DEBUG ===');
-                        console.log('Samples array length:', samples.length);
-                        if (samples.length > 0) {
-                            console.log('First 10 samples:', samples.slice(0, 10).map(s => parseFloat(s.toFixed(4))));
-                        }
-
-                        // Energy diagnostics (simplified for readability)
-                        const testWindowMs = 40;
-                        const testWindowSize = Math.floor(sampleRate * (testWindowMs / 1000));
-                        let nonZeroCount = 0;
-                        for (let i = 0; i < Math.min(samples.length, 10000); i++) {
-                            if (Math.abs(samples[i]) > 0.001) {
-                                nonZeroCount++;
-                                break;
-                            }
-                        }
-
-                        if (nonZeroCount === 0) {
-                            console.error('⚠️ AUDIO FILE IS SILENT - All samples are zero!');
-                            console.error('This file has no audio data or volume is muted.');
-                            return;
-                        }
-
-                        document.getElementById('decodeStatusText').textContent = 'Decoding...';
-                        console.log('\n=== THRESHOLD DEBUG ===');
-                        console.log('Energy threshold for detection: 0.05');
-
-                        // Call decode function with buffer
-                        const result = decodeFileBuffer(buffer);
-
-                        console.log('=== DECODE RESULT ===');
-                        console.log('Decoded text:', result.decodedText || '(empty)');
-                        console.log('Morse sequence:', result.morseSequence || '(none)');
-
-                        // Update UI with results
-                        // Update UI with results
-                        document.getElementById('decodeText').textContent = result.decodedText || '';
-                        
-                        if (!result.decodedText) {
-                            console.log('✓ Text decoded successfully:', result.decodedText);
-                            document.getElementById('decodeStatusText').textContent = 'No Morse detected.';
-                            document.getElementById('detectedMorseDisplay').textContent = '';
-                            document.getElementById('detectedMorseDisplay').classList.remove('visible');
-                        } else {
-                            console.log('✗ Processing complete');
-                            const charCount = (result.decodedText || '').replace(/\s/g, '').length;
-                            document.getElementById('decodeStatusText').textContent = result.morseSequence === 'File Decoded' ? `Decoded: ${charCount} chars` : result.morseSequence;
-                            
-                            // Only show "No Morse" if the text is all brackets or empty
-                            const hasValidChars = /[^[]/.test(result.decodedText.replace(/[\.\-\/ ]+/g, '')) > 0;
-                            
-                            // document.getElementById('decodeStatusText').textContent = result.decodedText ? `Decoded: ${charCount} chars` : 'No Morse detected.';
-                        }
-
-                        setTimeout(function () {
-                            resetDecodeUI();
-                        }, 2000);
-                    })
-                    .catch(err => {
-                        console.error('Error decoding file:', err);
-                        alert('Error decoding file: ' + err.message);
-                        document.getElementById('decodeStatusText').textContent = 'Error';
-                        resetDecodeUI();
-                    });
-            };
-
-            reader.onerror = function () {
-                console.error('File read error');
-                document.getElementById('decodeStatusText').textContent = 'Read Error';
-                resetDecodeUI();
-            };
-
-            reader.readAsArrayBuffer(file);
-        }
-
-        // Helper function to reset UI after file processing
-        function resetDecodeUI() {
-            const btnListen = document.getElementById('btnListen');
+            // UI Updates
+            document.getElementById('btnListen').style.display = '';
             const btnStop = document.getElementById('btnStopDecode');
-            const statusDot = document.getElementById('decodeStatus');
-            const statusText = document.getElementById('decodeStatusText');
-
-            if (btnListen) btnListen.style.display = '';
             if (btnStop) btnStop.style.display = 'none';
+            
+            var statusDot = document.getElementById('decodeStatus');
+            var statusText = document.getElementById('decodeStatusText');
             if (statusDot) statusDot.className = 'status-dot';
             if (statusText) statusText.textContent = 'Ready';
         }
 
-
-        // ========== UPDATE stopDecoding() to reset new state ==========
-        function stopDecoding() {
-            if (decodeRAF) cancelAnimationFrame(decodeRAF);
-            isDecoding = false;
-
-            if (decoderState.symbolBuffer.length > 0) {
-                decodeSymbol(decoderState.symbolBuffer);
-                decoderState.symbolBuffer = '';
-                updateDecodeDisplay();
-            }
-
-            if (activeSource) {
-                try { activeSource.disconnect(); } catch (e) { }
-                activeSource = null;
-            }
-
-            if (micStream) {
-                micStream.getTracks().forEach(t => t.stop());
-                micStream = null;
-            }
-
-            // ========== RESET NEW STATE FIELDS ==========
-            decoderState.energyHistory = [];
-            decoderState.signalBuffer = [];
-            decoderState.adaptiveLetterGap = null;
-            decoderState.adaptiveWordGap = null;
-            decoderState.lastBufferProcess = 0;
-            // ========== END RESET ==========
-
-            document.getElementById('btnListen').style.display = '';
-            document.getElementById('btnStopDecode').style.display = 'none';
-            document.getElementById('decodeStatus').className = 'status-dot';
-            document.getElementById('decodeStatusText').textContent = 'Ready';
-        }
-
         function startDecodeLoop() {
             if (!isDecoding) return;
+            
             var canvas = document.getElementById('waveformCanvas');
-            decoderState.canvasCtx = canvas.getContext('2d');
+            detectorState.canvasCtx = canvas.getContext('2d');
             decoderState.waveformData = new Uint8Array(getAnalyzer().frequencyBinCount);
-            var ds = decoderState;
+            
+            var ds = detectorState; // Using local variable to match function signature below
+            
             decodeRAF = requestAnimationFrame(decodeLoop);
-            decodeLoop();
         }
-        // ========== UPDATED decodeLoop() function (around line 1700) ==========
+
+        function processSignalBuffer() {
+             const ds = detectorState;
+             if (ds.signalBuffer.length < 5) return;
+             
+             // Extract durations and gaps for K-Means clustering
+             const durations = ds.signalBuffer.map(s => s.duration);
+             const gaps = [];
+             for (let i = 1; i < ds.signalBuffer.length; i++) {
+                 const gap = ds.signalBuffer[i].start - ds.signalBuffer[i - 1].end;
+                 if (gap > 0) gaps.push(gap);
+             }
+
+             if (gaps.length < 3) return;
+
+             console.log(`🔍 Processing buffer: ${ds.signalBuffer.length} signals, ${gaps.length} gaps`);
+
+             // K-Means to find letter vs word gaps
+             try {
+                 const gapClusters = kmeans1D(gaps, 3, 20);
+                 const sortedCentroids = gapClusters.centroids.sort((a, b) => a - b);
+                 
+                 const gap1 = sortedCentroids[1] - sortedCentroids[0];
+                 const gap2 = sortedCentroids[2] - sortedCentroids[1];
+                 
+                 console.log(`📊 K-means clusters: ${sortedCentroids.map(c => c.toFixed(0)).join('ms, ')}ms`);
+
+                 if (gap1 > 50 && gap2 > 50) {
+                     ds.adaptiveLetterGap = (sortedCentroids[0] + sortedCentroids[1]) / 2;
+                     ds.adaptiveWordGap = (sortedCentroids[1] + sortedCentroids[2]) / 2;
+                     console.log(`🎯 Adaptive thresholds updated:`);
+                 }
+             } catch (err) { console.warn(`K-means failed:`, err); }
+        }
+
+        // The main decoding animation loop
         function decodeLoop() {
-            if (!isDecoding) {
-                cancelAnimationFrame(decodeRAF);
-                return;
-            }
-    
-            var ds = decoderState;
+            if (!isDecoding) return;
+
+            var ds = detectorState;
             var now = performance.now();
             ds.waveformData.fill(0);
-            var baseFreq = parseInt(document.getElementById('toneFreq').value);
+            
+            // Get base frequency from UI slider to detect audio around it
+            var baseFreq = parseInt(document.getElementById('toneFreq').value) || 700;
             var sensitivity = parseInt(document.getElementById('sensitivity').value);
-    
+            
             const analyzer = getAnalyzer();
             const timeData = new Float32Array(analyzer.fftSize);
             analyzer.getFloatTimeDomainData(timeData);
-
-            // Create temporary detector instance for mic decode
+            
+            // Create temporary detector for microphone loop
             var ctx = getAudioCtx();
             const tempDetector = new SignalDetector(ctx.sampleRate);
-
             var result = tempDetector.process(timeData, baseFreq, sensitivity);
             var energy = result.energy;
             var threshold = result.threshold;
             var targetFreq = result.freq;
-    
-            // ========== IMPROVEMENT #2: ROLLING RMS NORMALIZATION ==========
-            // Track energy history for adaptive threshold
+
+            // Rolling RMS Normalization
             ds.energyHistory.push(energy);
-            if (ds.energyHistory.length > ds.maxHistorySize) {
-                ds.energyHistory.shift();
-            }
-    
-            // Calculate adaptive threshold from recent history
+            if (ds.energyHistory.length > ds.maxHistorySize) { ds.energyHistory.shift(); }
+            
             let onThreshold = threshold;
             let offThreshold = threshold * 0.6;
-    
+            
             if (ds.energyHistory.length >= 20) {
                 const avgEnergy = ds.energyHistory.reduce((a, b) => a + b, 0) / ds.energyHistory.length;
                 const maxEnergy = Math.max(...ds.energyHistory);
-        
-                // Adaptive threshold: signal must be 2x average, but at least 0.01
+                
+                // Adaptive threshold logic
                 onThreshold = Math.max(avgEnergy * 2.0, 0.01);
                 offThreshold = onThreshold * 0.6;
-        
-                console.log(`📊 Adaptive threshold: ${onThreshold.toFixed(4)} (avg: ${avgEnergy.toFixed(4)}, max: ${maxEnergy.toFixed(4)})`);
             }
-            // ========== END IMPROVEMENT #2 ==========
-    
+
             getAnalyzer().getByteTimeDomainData(ds.waveformData);
+            
+            var canvas = document.getElementById('waveformCanvas');
             drawWaveform(ds.waveformData, energy, onThreshold);
-            document.getElementById('decodeStatusText').textContent = 'Listening (' + Math.round(targetFreq) + ' Hz)';
-
-            if (!isDecoding) { 
-                cancelAnimationFrame(decodeRAF); 
-                return; 
+            
+            if (document.getElementById('decodeStatusText')) {
+                document.getElementById('decodeStatusText').textContent = 'Listening (' + Math.round(targetFreq) + ' Hz)';
             }
 
-            // Recalculate for consistency
-            var result = tempDetector.process(timeData, baseFreq, sensitivity);
+            // Main Detection Logic
             const ratio = result.energy / (tempDetector.noiseFloor || 0.001);
-
-            // Signal detection with adaptive thresholds
+            
             if (result.energy > onThreshold && !ds.inSignal) {
                 ds.inSignal = true;
                 ds.signalStart = now;
-                console.log(`🔊 Signal START at ${now.toFixed(0)}ms (energy: ${result.energy.toFixed(4)})`);
             } else if (result.energy < offThreshold && ds.inSignal) {
                 ds.inSignal = false;
                 var signalDur = now - ds.signalStart;
-        
-                console.log(`🔇 Signal END at ${now.toFixed(0)}ms (duration: ${signalDur.toFixed(0)}ms)`);
-        
-                // ========== IMPROVEMENT #4: ADD TO SIGNAL BUFFER ==========
-                ds.signalBuffer.push({
-                    start: ds.signalStart,
-                    end: now,
-                    duration: signalDur
-                });
-        
-                // Remove old signals (older than bufferDuration)
+
+                // Add to buffer for processing
+                ds.signalBuffer.push({ start: ds.signalStart, end: now, duration: signalDur });
+                
+                // Cleanup old signals
                 const cutoff = now - ds.bufferDuration;
                 ds.signalBuffer = ds.signalBuffer.filter(s => s.end > cutoff);
-        
-                // Process buffer every 500ms if we have enough signals
+
+                // Periodic processing (Every 500ms if enough data)
                 if (now - ds.lastBufferProcess > 500 && ds.signalBuffer.length >= 5) {
                     processSignalBuffer();
                     ds.lastBufferProcess = now;
                 }
-                // ========== END IMPROVEMENT #4 (part 1) ==========
-        
-                // ========== IMPROVEMENT #3: ADAPTIVE DOT DURATION ==========
-                // Determine if this is a dot or dash based on current estimate
+
+                // Determine symbol (Dot or Dash)
                 var dotEst = ds.dotDurationEstimate;
                 var symbol = (signalDur < dotEst * 1.8) ? '.' : '-';
                 ds.symbolBuffer += symbol;
-                document.getElementById('currentSymbol').textContent = ds.symbolBuffer;
-                ds.lastSignalEnd = now;
-        
-                // Track signal durations for adaptive learning
+                
+                if(document.getElementById('currentSymbol')) document.getElementById('currentSymbol').textContent = ds.symbolBuffer;
+                
+                // Adaptive Dot Duration Update
                 var estDur = (symbol === '.') ? signalDur : signalDur / 3;
                 ds.signalDurations.push(estDur);
-        
-                // Keep last 20 signals
-                if (ds.signalDurations.length > 20) {
-                    ds.signalDurations.shift();
-                }
-        
-                // Recalculate dot duration from recent signals (median is more robust than mean)
+                if (ds.signalDurations.length > 20) { ds.signalDurations.shift(); }
+                
+                // Update Estimate based on median of recent signals
                 if (ds.signalDurations.length >= 5) {
                     const sorted = [...ds.signalDurations].sort((a, b) => a - b);
                     const median = sorted[Math.floor(sorted.length / 2)];
-                    const newEstimate = Math.max(50, median);
-            
-                    // Only update if change is significant (>10%) to avoid jitter
+                    var newEstimate = Math.max(50, median);
+                    
+                    // Avoid jittering too fast by checking >10% change
                     if (Math.abs(newEstimate - ds.dotDurationEstimate) / ds.dotDurationEstimate > 0.1) {
                         ds.dotDurationEstimate = newEstimate;
                         console.log(`📊 Adaptive dot duration updated: ${ds.dotDurationEstimate.toFixed(0)}ms`);
                     }
                 }
-                // ========== END IMPROVEMENT #3 ==========
             }
 
-            // ========== UPDATED GAP DETECTION (uses adaptive thresholds from #4) ==========
+            // GAP Detection Logic
             if (!ds.inSignal && ds.symbolBuffer.length > 0) {
-                var silence = now - ds.lastSignalEnd;
+                var silence = now - detectorState.lastSignalEnd; // Use lastSignalEnd from state to track end of char
                 var dotEst = ds.dotDurationEstimate;
-        
-                // Use adaptive thresholds if available, otherwise fall back to fixed ratios
+                
                 const letterGapThreshold = ds.adaptiveLetterGap || (dotEst * 3);
                 const wordGapThreshold = ds.adaptiveWordGap || (dotEst * 7);
-        
+
                 if (silence >= wordGapThreshold) {
-                    console.log(`📝 WORD BREAK (${silence.toFixed(0)}ms >= ${wordGapThreshold.toFixed(0)}ms)`);
+                    // Word Break
                     decodeSymbol(ds.symbolBuffer);
-                    ds.decodedText += ' ';
-                    ds.symbolBuffer = '';
-                    document.getElementById('currentSymbol').textContent = '\u2014';
-                    updateDecodeDisplay();
-                    ds.lastSignalEnd = now;
+                    decoderState.decodedText += ' ';
+                    detectorState.symbolBuffer = '';
+                    var currSym = document.getElementById('currentSymbol');
+                    if(currSym) currSym.textContent = '\u2014';
+                    
+                    if(document.getElementById('decodeStatusText')) document.getElementById('decodeStatusText').textContent = 'Decoding...';
                 } else if (silence >= letterGapThreshold) {
-                    console.log(`📝 LETTER GAP (${silence.toFixed(0)}ms >= ${letterGapThreshold.toFixed(0)}ms)`);
+                    // Letter Break
                     decodeSymbol(ds.symbolBuffer);
-                    ds.symbolBuffer = '';
-                    document.getElementById('currentSymbol').textContent = '\u2014';
-                    updateDecodeDisplay();
-                    ds.lastSignalEnd = now;
+                    detectorState.symbolBuffer = '';
+                    var currSym = document.getElementById('currentSymbol');
+                    if(currSym) currSym.textContent = '\u2014';
                 } else if (silence >= 2500) {
-                    // Fallback timeout
-                    console.log(`⏱️ TIMEOUT (${silence.toFixed(0)}ms)`);
-                    decodeSymbol(ds.symbolBuffer);
-                    ds.symbolBuffer = '';
-                    document.getElementById('currentSymbol').textContent = '\u2014';
-                    updateDecodeDisplay();
-                    ds.lastSignalEnd = now;
+                     // Timeout fallback
+                     decodeSymbol(ds.symbolBuffer);
+                     detectorState.symbolBuffer = '';
+                     var currSym = document.getElementById('currentSymbol');
+                     if(currSym) currSym.textContent = '\u2014';
                 }
             }
-    
+
             decodeRAF = requestAnimationFrame(decodeLoop);
         }
 
         function drawWaveform(data, energy, threshold) {
             var canvas = document.getElementById('waveformCanvas');
-            var ctx = decoderState.canvasCtx;
-            if (!ctx) return;
-            var w = canvas.width = canvas.offsetWidth * 2;
-            var h = canvas.height = canvas.offsetHeight * 2;
-            ctx.clearRect(0, 0, w, h);
+            var ctx = detectorState.canvasCtx; // Access state directly
+            
+            if (!ctx || !canvas) return;
+            
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#1a1d27';
-            ctx.fillRect(0, 0, w, h);
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
             ctx.strokeStyle = 'rgba(231, 76, 60, 0.27)';
             ctx.lineWidth = 1;
             ctx.setLineDash([5, 5]);
+            var h = canvas.height;
+            var threshY = h - (threshold * h * 2);
             ctx.beginPath();
-            var threshY = h - threshold * h * 2;
             ctx.moveTo(0, threshY);
-            ctx.lineTo(w, threshY);
+            ctx.lineTo(canvas.width, threshY);
             ctx.stroke();
+            
             ctx.setLineDash([]);
             ctx.strokeStyle = energy > threshold ? '#f1c40f' : '#6c63ff';
             ctx.lineWidth = 2;
-            ctx.beginPath();
-            var sliceWidth = w / data.length;
+            
+            var sliceWidth = canvas.width / data.length;
             var x = 0;
             for (var i = 0; i < data.length; i++) {
                 var v = data[i] / 128.0;
                 var y = (v * h) / 2;
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
                 x += sliceWidth;
             }
             ctx.stroke();
-            var energyBar = Math.min(1, energy * 5);
-            var barColor = energy > threshold ? '#2ecc71' : '#e74c3c';
-            ctx.fillStyle = barColor + '33';
-            ctx.fillRect(0, 0, w * energyBar, 3);
         }
-        const morseArea = document.getElementById('manualMorseInput');
-        morseArea.addEventListener('input', (e) => {
-            const cleaned = morseArea.value.replace(/[^.\- \/]/g, '');
-            if (morseArea.value !== cleaned) {
-                const cursorPos = morseArea.selectionStart;
-                morseArea.value = cleaned;
-                morseArea.setSelectionRange(cursorPos, cursorPos);
-            }
-            liveDecodeMorse();
-        });
-        morseArea.addEventListener('keydown', (e) => {
-            const allowed = ['.', '-', ' ', '/', 'Enter', 'Backspace', 'Delete',
-                'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
-            if (!allowed.includes(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                e.preventDefault();
-            } else {
-                playTone(e.key);
-            }
-        });
-        function clearEncode() {
-            encodeInput.value = '';
-            morsePreview.textContent = '';
-            stopPlaying();
-            document.getElementById('encodeStatus').className = 'status-dot';
-            document.getElementById('encodeStatusText').textContent = 'Ready';
-            encodeInput.dispatchEvent(new Event('input'));
-            encodeInput.focus();
-        }
-        (function () {
-            var el = document.getElementById('refTable');
-            var keys = Object.keys(MORSE_MAP);
-            var html = '<div class="morse-grid">';
-            for (var i = 0; i < keys.length; i++) {
-                html += '<div class="morse-item"><div class="char">' + keys[i] + '</div><div class="code">' + MORSE_MAP[keys[i]] + '</div></div>';
-            }
-            html += '</div>';
-            el.innerHTML = html;
-        })();
-        document.getElementById('offlineDLLink').href = window.location.href;
-        function getFrequencyData() {
-            var analyzer = getAnalyzer();
-            var data = new Uint8Array(analyzer.frequencyBinCount);
-            analyzer.getByteFrequencyData(data);
-            return data;
-        }
-        function getToneEnergy(freqData, targetFreq) {
-            var ctx = getAudioCtx();
-            var nyquist = ctx.sampleRate / 2;
-            var bin = Math.round(targetFreq / nyquist * freqData.length);
-            bin = Math.max(0, Math.min(freqData.length - 1, bin));
-            var range = 2;
-            var sum = 0;
-            var count = 0;
-            for (var i = -range; i <= range; i++) {
-                var idx = bin + i;
-                if (idx >= 0 && idx < freqData.length) {
-                    sum += freqData[idx];
-                    count++;
-                }
-            }
-            return sum / count / 255; // normalize 0–1
-        }
-        function getNoiseRatio(freqData, targetFreq) {
-            var ctx = getAudioCtx();
-            var nyquist = ctx.sampleRate / 2;
-            var bin = Math.round(targetFreq / nyquist * freqData.length);
-            var tone = freqData[bin];
-            var total = 0;
-            for (var i = 0; i < freqData.length; i++) {
-                total += freqData[i];
-            }
-            var avg = total / freqData.length;
-            return tone / (avg + 1);
-        }
-        function detectPeakFrequency(freqData) {
-            var maxVal = 0;
-            var maxIndex = 0;
-            for (var i = 0; i < freqData.length; i++) {
-                if (freqData[i] > maxVal) {
-                    maxVal = freqData[i];
-                    maxIndex = i;
-                }
-            }
-            var ctx = getAudioCtx();
-            var nyquist = ctx.sampleRate / 2;
-            var freq = (maxIndex / freqData.length) * nyquist;
-            return { freq: freq, strength: maxVal / 255 };
-        }
-        function mergeFragmentedSignals(durations, maxGap = 0.008) {
-            if (!durations || durations.length < 3) return durations;
-            const signalDurations = durations
-                .filter(d => d.type === 'signal')
-                .map(d => d.dur)
-                .sort((a, b) => a - b);
-            const sampleCount = Math.min(5, signalDurations.length);
-            const dotBase = avg(signalDurations.slice(0, sampleCount)) || 0.05;
-            let changed = true;
-            while (changed) {
-                changed = false;
-                let result = [];
-                for (let i = 0; i < durations.length; i++) {
-                    if (
-                        i < durations.length - 2 &&
-                        durations[i].type === 'signal' &&
-                        durations[i + 1].type === 'silence' &&
-                        durations[i + 1].dur < maxGap &&
-                        durations[i + 2].type === 'signal'
-                    ) {
-                        const left = durations[i];
-                        const gap = durations[i + 1];
-                        const right = durations[i + 2];
-                        const isLikelyDot =
-                            left.dur < dotBase * 1.5 &&
-                            right.dur < dotBase * 1.5;
-                        if (!isLikelyDot) {
-                            const mergedDur = left.dur + gap.dur + right.dur;
-                            result.push({
-                                type: 'signal',
-                                dur: mergedDur
-                            });
-                            i += 2;
-                            changed = true;
-                            continue;
+
+        // File Upload Handling
+        function handleFileUpload(file) {
+            if (!file || !file.type.startsWith('audio/')) return;
+            
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var ctx = getAudioCtx();
+                if (ctx.state === 'suspended') { ctx.resume(); }
+                
+                // Reset UI before processing
+                resetDecodeUI();
+                
+                // Clear previous file input value to allow re-upload of same file
+                document.getElementById('fileInput').value = '';
+
+                ctx.decodeAudioData(e.target.result)
+                    .then(function (buffer) {
+                        const samples = buffer.getChannelData(0);
+                        
+                        // Check for silent audio
+                        let sum = 0;
+                        const checkLimit = Math.min(10000, samples.length);
+                        for (let i = 0; i < checkLimit; i++) sum += Math.abs(samples[i]);
+                        
+                        if (sum < 500) {
+                             console.warn('⚠️ AUDIO FILE APPEARS VERY QUIET!');
                         }
-                    }
-                    result.push(durations[i]);
-                }
-                durations = result;
-            }
-            return durations;
-        }
-        function calculateGapThresholds(dotBase) {
-            if (!dotBase || dotBase <= 0) dotBase = 0.06; // Default 60ms
-            return {
-                letter: dotBase * 3.5,
-                word: dotBase * 7.0
+
+                        const result = decodeFileBuffer(buffer);
+                        
+                        var decodeTextEl = document.getElementById('decodeText');
+                        var statusDot = document.getElementById('decodeStatus');
+                        var statusText = document.getElementById('decodeStatusText');
+
+                        if (!result.decodedText) {
+                            console.log('No Morse detected in file');
+                            if (statusText) statusText.textContent = 'No Morse detected.';
+                            // Optional: clear display or show "None"
+                        } else {
+                            console.log('Text decoded successfully:', result.decodedText);
+                            decodeTextEl.textContent = result.decodedText;
+                            
+                            var charCount = result.decodedText.replace(/\s/g, '').length;
+                            if (statusText) statusText.textContent = `Decoded: ${charCount} chars`;
+                        }
+
+                        setTimeout(function () { resetDecodeUI(); }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Error decoding file:', err);
+                        alert('Error decoding file: ' + err.message);
+                        if (statusText) statusText.textContent = 'Error';
+                        resetDecodeUI();
+                    });
             };
+            reader.readAsArrayBuffer(file);
         }
-        window.addEventListener('click', function () {
+
+        // Initialize Offline Link
+        document.getElementById('offlineDLLink').href = window.location.href;
+        
+        // Fix: Click anywhere to wake audio context if suspended
+        document.body.addEventListener('click', function () {
             if (audioCtxSingleton && audioCtxSingleton.state === 'suspended') {
                 audioCtxSingleton.resume();
             }
         }, { once: true });
-
-        function debugSignalDetection(buffer) {
-            const samples = buffer.getChannelData(0);
-            const sampleRate = buffer.sampleRate;
-            const baseFreq = 700;
-    
-            console.log('=== RAW SIGNAL ANALYSIS ===');
-            console.log('Samples length:', samples.length);
-            console.log('Sample rate:', sampleRate);
-    
-            // Test a few time windows manually
-            const testWindows = [0, sampleRate * 0.5, Math.min(sampleRate, buffer.length - 1)];
-    
-            for (let i of testWindows) {
-                const windowSize = Math.floor(sampleRate * 0.04); // 40ms windows
-                if (i + windowSize > samples.length) continue;
-        
-                const windowSamples = samples.subarray(i, i + windowSize);
-                const detector = new SignalDetector(sampleRate);
-                const result = detector.process(windowSamples, baseFreq, 20);
-        
-                console.log('Window at t=' + (i / sampleRate * 1000).toFixed(1) + 'ms:');
-                console.log('  - Duration:', windowSize / sampleRate * 1000, 'ms');
-                console.log('  - Energy:', result.energy);
-                console.log('  - Frequency detected:', result.freq);
-            }
-        }
-
-        function quickVolumeCheck(samples, sampleRate) {
-            let sum = 0;
-            for (let i = 0; i < samples.length && i < 10000; i++) {
-                sum += Math.abs(samples[i]);
-            }
-            console.log('First 10k samples absolute value sum:', sum);
-            console.log('Average sample magnitude in first 10k:', (sum / 10000).toFixed(4));
-            if (sum < 1000) {
-                console.warn('⚠️ WARNING: Audio file appears very quiet or silent!');
-            }
-        }
-
-        // ========== IMPROVEMENT #4: SIGNAL BUFFER PROCESSING FUNCTION ==========
-        // Add this new function after decodeLoop()
-        function processSignalBuffer() {
-            const ds = decoderState;
-
-            if (ds.signalBuffer.length < 5) return;
-
-            // Extract durations and gaps
-            const durations = ds.signalBuffer.map(s => s.duration);
-            const gaps = [];
-
-            for (let i = 1; i < ds.signalBuffer.length; i++) {
-                const gap = ds.signalBuffer[i].start - ds.signalBuffer[i - 1].end;
-                if (gap > 0) gaps.push(gap);
-            }
-
-            if (gaps.length < 3) return;
-
-            console.log(`🔍 Processing buffer: ${ds.signalBuffer.length} signals, ${gaps.length} gaps`);
-
-            // Apply k-means to find thresholds (same as file upload)
-            try {
-                const gapClusters = kmeans1D(gaps, 3, 20);
-                const sortedCentroids = gapClusters.centroids.sort((a, b) => a - b);
-
-                // Check if clusters are distinct (>50ms separation)
-                const gap1 = sortedCentroids[1] - sortedCentroids[0];
-                const gap2 = sortedCentroids[2] - sortedCentroids[1];
-
-                console.log(`📊 K-means clusters: ${sortedCentroids.map(c => c.toFixed(0)).join('ms, ')}ms`);
-                console.log(`📊 Cluster separations: ${gap1.toFixed(0)}ms, ${gap2.toFixed(0)}ms`);
-
-                if (gap1 > 50 && gap2 > 50) {
-                    // Clusters are distinct - update adaptive thresholds
-                    ds.adaptiveLetterGap = (sortedCentroids[0] + sortedCentroids[1]) / 2;
-                    ds.adaptiveWordGap = (sortedCentroids[1] + sortedCentroids[2]) / 2;
-
-                    console.log(`🎯 Adaptive thresholds updated:`);
-                    console.log(`   Letter gap: ${ds.adaptiveLetterGap.toFixed(0)}ms`);
-                    console.log(`   Word gap: ${ds.adaptiveWordGap.toFixed(0)}ms`);
-                } else {
-                    console.log(`⚠️ Clusters too similar, keeping existing thresholds`);
-                }
-            } catch (err) {
-                console.warn(`K-means failed:`, err);
-            }
-        }
-
-        function resetControls() {
-            var dotDurEl = document.getElementById('dotDuration');
-            var toneFreqEl = document.getElementById('toneFreq');
-            var volumeEl = document.getElementById('volume');
-            var sensitivityEl = document.getElementById('sensitivity');
-            var dotEstimateEl = document.getElementById('dotEstimate');
-            
-            // Reset values to defaults
-            dotDurEl.value = 120;
-            toneFreqEl.value = 700;
-            volumeEl.value = 70;
-            sensitivityEl.value = 20;
-            dotEstimateEl.value = 120;
-            
-            // Trigger events to update text displays next to sliders
-            dotDurEl.dispatchEvent(new Event('input'));
-            toneFreqEl.dispatchEvent(new Event('input'));
-            volumeEl.dispatchEvent(new Event('input'));
-            sensitivityEl.dispatchEvent(new Event('input'));
-            dotEstimateEl.dispatchEvent(new Event('input'));
-            
-            // Visual feedback (optional: flash buttons or status)
-            var statusText = document.getElementById('encodeStatusText');
-            var encodeStatus = document.getElementById('encodeStatus');
-            encodeStatus.className = 'status-dot rendering';
-            statusText.textContent = 'Settings Reset';
-            
-            setTimeout(function() {
-                encodeStatus.className = 'status-dot';
-                statusText.textContent = 'Ready';
-            }, 1000);
-        }
     </script>
 </body>
 </html>
