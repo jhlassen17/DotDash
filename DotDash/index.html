@@ -9,7 +9,7 @@
     Save a copy for offline use, all functions should work locally.
 
     @Author: Jeffrey Lassen
-    @Version: 1.2.4
+    @Version: 1.2.5
     @LastUpdated: 05/08/2026
 
     -->
@@ -381,6 +381,38 @@
                     color: var(--yellow);
                 }
 
+        .manual-text-section {
+            margin: 16px 0;
+            padding: 18px;
+            background: #12141c;
+            border: 1px solid #333;
+            border-radius: 12px;
+        }
+
+        .manual-text-section label {
+                display: block;
+                font-size: 0.8rem;
+                color: #999;
+                margin-bottom: 8px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+            .manual-text-section .hint {
+                font-size: 0.75rem;
+                color: #666;
+                margin-top: 6px;
+                line-height: 1.5;
+            }
+
+                .manual-text-section .hint code {
+                    background: var(--surface);
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    color: var(--yellow);
+                    font-family: 'Courier New', monospace;
+                }
+
         /* ── Manual Morse Input Section ── */
         .manual-morse-section {
             margin: 16px 0;
@@ -437,6 +469,20 @@
             .manual-morse-input::placeholder {
                 color: #555;
                 letter-spacing: 1px;
+            }
+        
+        .decoded-morse-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            display: none;
+        }
+
+             .decoded-morse-label.visible {
+                display: block;
             }
 
         .manual-decode-result {
@@ -502,6 +548,39 @@
             .detected-morse-display.visible {
                 display: block;
             }
+
+            .detected-morse-section {
+            margin: 16px 0;
+            padding: 18px;
+            background: #12141c;
+            border: 1px solid #333;
+            border-radius: 12px;
+        }
+
+        .detected-morse-section label {
+                display: block;
+                font-size: 0.8rem;
+                color: #999;
+                margin-bottom: 8px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+            .detected-morse-section .hint {
+                font-size: 0.75rem;
+                color: #666;
+                margin-top: 6px;
+                line-height: 1.5;
+            }
+
+                .detected-morse-section .hint code {
+                    background: var(--surface);
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    color: var(--yellow);
+                    font-family: 'Courier New', monospace;
+                }
+
         /* ── Morse Reference Table Upgrade ───────────────────────── */
 
         .morse-table {
@@ -724,33 +803,36 @@
     <div class="container">
         <!-- Encode Section -->
         <div class="card">
-            <h2><span class="icon">&#128229;</span> Encode &mdash; English Text to Morse Code Text</h2>
-            <!-- Type English text to convert to morse code -->
-            <textarea id="encodeInput"
-                      inputmode="text"
-                      autocomplete="on"
-                      autocorrect="on"
-                      autocapitalize="on"
-                      spellcheck="true"
-                      placeholder="Type text here to encode to Morse code..."></textarea>
-            <!-- Encoded morse display -->
-            <div class="morse-display" id="morsePreview"></div>
-            <!-- Settings -->
-            <div class="settings-row">
-                <div class="setting">
-                    <label>Dot Duration</label>
-                    <input type="range" id="dotDuration" min="50" max="300" value="120">
-                    <span class="val" id="dotDurationVal">120 ms</span>
-                </div>
-                <div class="setting">
-                    <label>Tone Frequency</label>
-                    <input type="range" id="toneFreq" min="400" max="1200" value="700" step="50">
-                    <span class="val" id="toneFreqVal">700 Hz</span>
-                </div>
-                <div class="setting">
-                    <label>Volume</label>
-                    <input type="range" id="volume" min="0" max="100" value="70">
-                    <span class="val" id="volumeVal">70%</span>
+                <h2><span class="icon">&#128229;</span> Encode &mdash; English Text to Morse Code Text</h2>
+                <div class="manual-text-section">
+                <label>Enter English Text</label>
+                <!-- Type English text to convert to morse code -->
+                <textarea id="encodeInput"
+                        inputmode="text"
+                        autocomplete="on"
+                        autocorrect="on"
+                        autocapitalize="on"
+                        spellcheck="true"
+                        placeholder="Type text here to encode to Morse code..."></textarea>
+                <!-- Encoded morse display -->
+                <div class="morse-display" id="morsePreview"></div>
+                <!-- Settings -->
+                <div class="settings-row">
+                    <div class="setting">
+                        <label>Dot Duration</label>
+                        <input type="range" id="dotDuration" min="50" max="300" value="120">
+                        <span class="val" id="dotDurationVal">120 ms</span>
+                    </div>
+                    <div class="setting">
+                        <label>Tone Frequency</label>
+                        <input type="range" id="toneFreq" min="400" max="1200" value="700" step="50">
+                        <span class="val" id="toneFreqVal">700 Hz</span>
+                    </div>
+                    <div class="setting">
+                        <label>Volume</label>
+                        <input type="range" id="volume" min="0" max="100" value="70">
+                        <span class="val" id="volumeVal">70%</span>
+                    </div>
                 </div>
             </div>
             <!-- Actions -->
@@ -797,6 +879,8 @@
                     <button class="btn-clear" onclick="clearManualMorse()">&#128465; Clear</button>
                 </div>
                 <!-- Decoded Morse Display -->
+                <br />
+                <div id="decodedMorseLabel" class="detected-morse-label">Decoded Morse:</div>
                 <div class="manual-decode-result" id="manualDecodeResult"></div>
             </div>
             <!-- Status -->
@@ -808,29 +892,32 @@
         <!-- Morse Audio Decoder -->
         <div class="card">
             <h2><span class="icon">&#127907;</span> Decode &mdash; Morse Audio to English Text</h2>
-            <!-- Current Symbol Display -->
-            <div class="current-symbol" id="currentSymbol">&#8212;</div>
-            <!-- WaveForm, only works on Mic input (file input goes too fast) -->
-            <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
-            <!-- Detected Morse Code-->
-            <div class="detected-morse-label" id="decodeOutputLabel">&#128220; Detected Text</div>
-            <div class="decode-output" id="decodeOutput">
-                <span id="decodeText"></span><span class="cursor"></span>
-            </div>
-            <!-- ── Detected Morse Code Display (shown during file decode) ── -->
-            <div class="detected-morse-label" id="detectedMorseLabel">&#128220; Detected Morse Code</div>
-            <div class="detected-morse-display" id="detectedMorseDisplay"></div>
-            <!-- Settings -->
-            <div class="settings-row">
-                <div class="setting">
-                    <label>Sensitivity</label>
-                    <input type="range" id="sensitivity" min="1" max="50" value="20">
-                    <span class="val" id="sensitivityVal">20</span>
+            <div class="detected-morse-section">
+                <label>Decode Morse from Mic or Audio File</label>
+                <!-- Current Symbol Display -->
+                <div class="current-symbol" id="currentSymbol">&#8212;</div>
+                <!-- WaveForm, only works on Mic input (file input goes too fast) -->
+                <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
+                <!-- Detected Morse Code-->
+                <div class="detected-morse-label" id="decodeOutputLabel">&#128220; Detected Text</div>
+                <div class="decode-output" id="decodeOutput">
+                    <span id="decodeText"></span><span class="cursor"></span>
                 </div>
-                <div class="setting">
-                    <label>Dot Estimate</label>
-                    <input type="range" id="dotEstimate" min="50" max="400" value="120">
-                    <span class="val" id="dotEstimateVal">120 ms</span>
+                <!-- ── Detected Morse Code Display (shown during file decode) ── -->
+                <div class="detected-morse-label" id="detectedMorseLabel">&#128220; Detected Morse Code</div>
+                <div class="detected-morse-display" id="detectedMorseDisplay"></div>
+                <!-- Settings -->
+                <div class="settings-row">
+                    <div class="setting">
+                        <label>Sensitivity</label>
+                        <input type="range" id="sensitivity" min="1" max="50" value="20">
+                        <span class="val" id="sensitivityVal">20</span>
+                    </div>
+                    <div class="setting">
+                        <label>Dot Estimate</label>
+                        <input type="range" id="dotEstimate" min="50" max="400" value="120">
+                        <span class="val" id="dotEstimateVal">120 ms</span>
+                    </div>
                 </div>
             </div>
             <!-- Actions -->
@@ -857,7 +944,7 @@
     </div>
     <div>
         <!-- Footer -->
-        <h6>&#0169 (2026) - Lassens.IT - Made with ❤️. Version: 1.2.4 - <a href="https://buymeacoffee.com/hanf" title="Support Us">Buy us a drink</a></h6>
+        <h6>&#0169 (2026) - Lassens.IT - Made with ❤️. Version: 1.2.5 - <a href="https://buymeacoffee.com/hanf" title="Support Us">Buy us a drink</a></h6>
     </div>
     <script>
         // ========== GLOBAL CONSTANTS & STATE ==========
@@ -944,10 +1031,12 @@
             var raw = document.getElementById('manualMorseInput').value.trim();
             var resultEl = document.getElementById('manualDecodeResult');
             var countEl = document.getElementById('manualDecodeCount');
+            var resultLbl = document.getElementById('decodedMorseLabel');
             if (!raw) {
                 resultEl.innerHTML = '<span class="error">Please enter some Morse code.</span>';
                 resultEl.classList.add('visible');
                 countEl.textContent = '0 chars';
+                resultLbl.classList.add('visible');
                 return;
             }
             if (!/^[\.\-\/\s]+$/.test(raw)) {
@@ -982,6 +1071,7 @@
                 resultEl.innerHTML = output;
             }
             resultEl.classList.add('visible');
+            resultLbl.classList.add('visible');
         }
         function liveDecodeMorse() {
             var raw = document.getElementById('manualMorseInput').value.trim();
@@ -994,6 +1084,8 @@
             var resultEl = document.getElementById('manualDecodeResult');
             resultEl.innerHTML = '';
             resultEl.classList.remove('visible');
+            var resultLbl = document.getElementById('decodedMorseLabel');
+            resultLbl.classList.remove('visible');
             document.getElementById('manualDecodeCount').innerHTML = 'Ready';
             input.focus();
         }
