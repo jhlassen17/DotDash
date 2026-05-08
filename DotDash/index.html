@@ -57,7 +57,7 @@
         h1 {
             font-size: 2rem;
             margin-bottom: 4px;
-            background: linear-gradient(135deg, #6c63ff, #e74c3c);
+            background: linear-gradient(135deg, var(--accent), var(--red));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -126,7 +126,7 @@
             font-family: 'Courier New', monospace;
             font-size: 1.25rem;
             letter-spacing: 3px;
-            color: #f1c40f;
+            color: var(--yellow);
             word-break: break-all;
         }
 
@@ -153,13 +153,13 @@
 
         input[type="range"] {
             width: 100%;
-            accent-color: #6c63ff;
+            accent-color: var(--accent);
             cursor: pointer;
         }
 
         .val {
             font-size: 0.85rem;
-            color: #6c63ff;
+            color: var(--accent);
             font-weight: 600;
         }
 
@@ -187,7 +187,7 @@
             }
 
         .btn-encode {
-            background: linear-gradient(135deg, #6c63ff, #5a52d5);
+            background: linear-gradient(135deg, var(--accent), #5a52d5);
             color: #fff;
         }
 
@@ -197,7 +197,7 @@
             }
 
         .btn-download {
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            background: linear-gradient(135deg, var(--green), #27ae60);
             color: #fff;
         }
 
@@ -207,7 +207,7 @@
             }
 
         .btn-decode {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            background: linear-gradient(135deg, var(--red), #c0392b);
             color: #fff;
         }
 
@@ -235,8 +235,8 @@
             }
 
         .btn-manual-decode {
-            background: linear-gradient(135deg, #f1c40f, #e67e22);
-            color: #1a1d27;
+            background: linear-gradient(135deg, var(--yellow), #e67e22);
+            color: var(--surface);
         }
 
             .btn-manual-decode:hover:not(:disabled) {
@@ -262,25 +262,25 @@
         }
 
             .status-dot.active {
-                background: #2ecc71;
-                box-shadow: 0 0 8px #2ecc71;
+                background: var(--green);
+                box-shadow: 0 0 8px var(--green);
             }
 
             .status-dot.playing {
-                background: #f1c40f;
-                box-shadow: 0 0 8px #f1c40f;
+                background: var(--yellow);
+                box-shadow: 0 0 8px var(--yellow);
             }
 
             .status-dot.rendering {
-                background: #6c63ff;
-                box-shadow: 0 0 8px #6c63ff;
+                background: var(--accent);
+                box-shadow: 0 0 8px var(--accent);
             }
 
         .current-symbol {
             text-align: center;
             font-size: 2.5rem;
             font-family: 'Courier New', monospace;
-            color: #f1c40f;
+            color: var(--yellow);
             margin: 10px 0;
             min-height: 50px;
             display: flex;
@@ -311,7 +311,7 @@
             display: inline-block;
             width: 2px;
             height: 1.1em;
-            background: #f1c40f;
+            background: var(--yellow);
             animation: blink 1s infinite;
             vertical-align: text-bottom;
             margin-left: 2px;
@@ -345,7 +345,7 @@
         }
 
             .file-label:hover {
-                border-color: #6c63ff;
+                border-color: var(--accent);
                 color: #ccc;
             }
 
@@ -370,7 +370,7 @@
 
                 .reference td:first-child {
                     font-weight: 700;
-                    color: #6c63ff;
+                    color: var(--accent);
                     width: 30px;
                     text-align: center;
                 }
@@ -378,7 +378,7 @@
                 .reference td:last-child {
                     font-family: 'Courier New', monospace;
                     letter-spacing: 2px;
-                    color: #f1c40f;
+                    color: var(--yellow);
                 }
 
         /* ── Manual Morse Input Section ── */
@@ -407,19 +407,19 @@
             }
 
                 .manual-morse-section .hint code {
-                    background: #1a1d27;
+                    background: var(--surface);
                     padding: 2px 6px;
                     border-radius: 4px;
-                    color: #f1c40f;
+                    color: var(--yellow);
                     font-family: 'Courier New', monospace;
                 }
 
         .manual-morse-input {
             width: 100%;
-            background: #0f1117;
+            background: var(--bg);
             border: 1px solid #444;
             border-radius: 8px;
-            color: #f1c40f;
+            color: var(--yellow);
             font-size: 1.15rem;
             padding: 12px;
             resize: vertical;
@@ -431,7 +431,7 @@
         }
 
             .manual-morse-input:focus {
-                border-color: #f1c40f;
+                border-color: var(--yellow);
             }
 
             .manual-morse-input::placeholder {
@@ -440,14 +440,14 @@
             }
 
         .manual-decode-result {
-            background: #1a1d27;
-            border: 1px solid #2ecc71;
+            background: var(--surface);
+            border: 1px solid var(--green);
             border-radius: 8px;
             padding: 12px;
             margin-top: 10px;
             min-height: 40px;
             font-size: 1.1rem;
-            color: #2ecc71;
+            color: var(--green);
             font-weight: 600;
             word-wrap: break-word;
             display: none;
@@ -458,7 +458,7 @@
             }
 
             .manual-decode-result .error {
-                color: #e74c3c;
+                color: var(--red);
                 font-weight: 400;
                 font-size: 0.9rem;
             }
@@ -493,7 +493,7 @@
             font-family: 'Courier New', monospace;
             font-size: 1.2rem;
             letter-spacing: 3px;
-            color: #f1c40f;
+            color: var(--yellow);
             word-break: break-all;
             display: none;
             margin-bottom: 8px;
@@ -545,7 +545,7 @@
                 .morse-table td.code {
                     font-family: 'Courier New', monospace;
                     letter-spacing: 3px;
-                    color: #f1c40f;
+                    color: var(--yellow);
                     font-size: 0.95rem;
                 }
 
@@ -590,7 +590,7 @@
             .morse-item .code {
                 font-family: 'Courier New', monospace;
                 letter-spacing: 2px;
-                color: #f1c40f;
+                color: var(--yellow);
                 font-size: 0.9rem;
             }
 
@@ -1312,8 +1312,10 @@
             maxHistorySize: 100, 
             // #4: Signal Buffering with K-means
             signalBuffer: [],
+            fullSignalBursts: [],
             bufferDuration: 2000,  // 2 seconds
             lastBufferProcess: 0,
+            lastDecodeRefresh: 0,
             adaptiveLetterGap: null,
             adaptiveWordGap: null
         };
@@ -1354,6 +1356,174 @@
                 console.warn(`Unknown morse sequence: ${morse}`);
                 return cleaned;
             }
+        }
+
+        function decodeBurstsToText(signalBursts, options) {
+            options = options || {};
+            if (!Array.isArray(signalBursts) || signalBursts.length === 0) {
+                return {
+                    decodedText: '',
+                    partialMorse: '',
+                    dotBaseMs: 0,
+                    dotThresholdMs: 0,
+                    letterGapThresholdMs: 0,
+                    wordGapThresholdMs: 0,
+                    mergedBursts: []
+                };
+            }
+
+            var bursts = signalBursts
+                .filter(function (s) {
+                    return s && typeof s.start === 'number' && typeof s.end === 'number' && s.end > s.start;
+                })
+                .map(function (s) { return { start: s.start, end: s.end }; })
+                .sort(function (a, b) { return a.start - b.start; });
+
+            if (bursts.length === 0) {
+                return {
+                    decodedText: '',
+                    partialMorse: '',
+                    dotBaseMs: 0,
+                    dotThresholdMs: 0,
+                    letterGapThresholdMs: 0,
+                    wordGapThresholdMs: 0,
+                    mergedBursts: []
+                };
+            }
+
+            var rawDurations = bursts.map(function (b) { return b.end - b.start; }).sort(function (a, b) { return a - b; });
+            var rawMid = rawDurations[Math.floor(rawDurations.length / 2)] || 40;
+            var mergeGapMs = Math.max(rawMid * 0.3, 30);
+
+            var merged = [];
+            var curStart = bursts[0].start;
+            var curEnd = bursts[0].end;
+            for (var i = 1; i < bursts.length; i++) {
+                var gapMs = bursts[i].start - curEnd;
+                if (gapMs < mergeGapMs && bursts[i].end > curEnd) {
+                    curEnd = Math.max(curEnd, bursts[i].end);
+                } else {
+                    merged.push({ start: curStart, end: curEnd });
+                    curStart = bursts[i].start;
+                    curEnd = bursts[i].end;
+                }
+            }
+            merged.push({ start: curStart, end: curEnd });
+
+            var durations = merged
+                .map(function (s) { return s.end - s.start; })
+                .filter(function (d) { return d > 0; })
+                .sort(function (a, b) { return a - b; });
+
+            if (durations.length === 0) {
+                return {
+                    decodedText: '',
+                    partialMorse: '',
+                    dotBaseMs: 0,
+                    dotThresholdMs: 0,
+                    letterGapThresholdMs: 0,
+                    wordGapThresholdMs: 0,
+                    mergedBursts: merged
+                };
+            }
+
+            var dotBaseMs = Math.max(durations[Math.floor(durations.length / 2)], 40);
+            var dotThresholdMs = dotBaseMs * 1.4;
+
+            var gaps = [];
+            for (var gi = 1; gi < merged.length; gi++) {
+                gaps.push(merged[gi].start - merged[gi - 1].end);
+            }
+
+            var letterGapThresholdMs = dotBaseMs * 2.0;
+            var wordGapThresholdMs = dotBaseMs * 5.0;
+
+            if (gaps.length >= 4) {
+                var gapClusters4 = kmeans1D(gaps, 4, 20);
+                var c4 = gapClusters4.centroids.slice().sort(function (a, b) { return a - b; });
+                var c4g1 = c4[1] - c4[0];
+                var c4g2 = c4[2] - c4[1];
+                var c4g3 = c4[3] - c4[2];
+                if (c4g1 > 50 && c4g2 > 50 && c4g3 > 50) {
+                    letterGapThresholdMs = (c4[0] + c4[1]) / 2;
+                    wordGapThresholdMs = (c4[1] + c4[2]) / 2;
+                }
+            } else if (gaps.length >= 3) {
+                var gapClusters3 = kmeans1D(gaps, 3, 20);
+                var c3 = gapClusters3.centroids.slice().sort(function (a, b) { return a - b; });
+                var c3g1 = c3[1] - c3[0];
+                var c3g2 = c3[2] - c3[1];
+                if (c3g1 > 50 && c3g2 > 50) {
+                    letterGapThresholdMs = (c3[0] + c3[1]) / 2;
+                    wordGapThresholdMs = (c3[1] + c3[2]) / 2;
+                }
+            }
+
+            var decodedText = '';
+            var currentMorse = '';
+
+            function flushSymbol(addWordSpace) {
+                if (!currentMorse) return;
+                decodedText += morseToChar(currentMorse);
+                if (addWordSpace && decodedText.length > 0 && decodedText[decodedText.length - 1] !== ' ') {
+                    decodedText += ' ';
+                }
+                currentMorse = '';
+            }
+
+            for (var si = 0; si < merged.length; si++) {
+                if (si > 0) {
+                    var gapBefore = merged[si].start - merged[si - 1].end;
+                    if (gapBefore >= wordGapThresholdMs) {
+                        flushSymbol(true);
+                    } else if (gapBefore >= letterGapThresholdMs) {
+                        flushSymbol(false);
+                    }
+                }
+                var symDur = merged[si].end - merged[si].start;
+                currentMorse += (symDur < dotThresholdMs) ? '.' : '-';
+            }
+
+            var trailingSilenceMs = typeof options.trailingSilenceMs === 'number' ? options.trailingSilenceMs : null;
+            if (trailingSilenceMs !== null) {
+                if (trailingSilenceMs >= wordGapThresholdMs) {
+                    flushSymbol(true);
+                } else if (trailingSilenceMs >= letterGapThresholdMs) {
+                    flushSymbol(false);
+                }
+            }
+
+            return {
+                decodedText: decodedText,
+                partialMorse: currentMorse,
+                dotBaseMs: dotBaseMs,
+                dotThresholdMs: dotThresholdMs,
+                letterGapThresholdMs: letterGapThresholdMs,
+                wordGapThresholdMs: wordGapThresholdMs,
+                mergedBursts: merged
+            };
+        }
+
+        function refreshMicDecodeFromBursts(nowMs) {
+            var ds = decoderState;
+            if (!ds.fullSignalBursts || ds.fullSignalBursts.length === 0) {
+                ds.decodedText = '';
+                document.getElementById('decodeText').textContent = '';
+                document.getElementById('currentSymbol').textContent = '\u2014';
+                return;
+            }
+
+            var lastEnd = ds.fullSignalBursts[ds.fullSignalBursts.length - 1].end;
+            var trailing = Math.max(0, nowMs - lastEnd);
+            var decoded = decodeBurstsToText(ds.fullSignalBursts, { trailingSilenceMs: trailing });
+
+            ds.decodedText = decoded.decodedText;
+            ds.dotDurationEstimate = Math.max(50, decoded.dotBaseMs || ds.dotDurationEstimate);
+            ds.adaptiveLetterGap = decoded.letterGapThresholdMs || ds.adaptiveLetterGap;
+            ds.adaptiveWordGap = decoded.wordGapThresholdMs || ds.adaptiveWordGap;
+
+            document.getElementById('decodeText').textContent = ds.decodedText;
+            document.getElementById('currentSymbol').textContent = decoded.partialMorse && decoded.partialMorse.length > 0 ? decoded.partialMorse : '\u2014';
         }
 
         // --- DECODE FILE BUFFER LOGIC (FIXED MORSE TRACKING) ---
@@ -1429,158 +1599,17 @@
             const MERGE_GAP = Math.max(dotBase * 0.3, 30);
             console.log(`Adaptive merge gap: ${MERGE_GAP.toFixed(0)}ms`);
 
-            let symbols = [];
-            let mergedStart = onTimes[0].start;
-            let mergedEnd = onTimes[0].end;
+            var burstsMs = onTimes.map(function (t) {
+                return { start: t.start * 1000, end: t.end * 1000 };
+            });
+            var decoded = decodeBurstsToText(burstsMs, { trailingSilenceMs: 10000 });
+            decodedText = decoded.decodedText;
 
-            for (let j = 1; j < onTimes.length; j++) {
-                const gapMs = (onTimes[j].start - mergedEnd) * 1000;
-
-                if (gapMs < MERGE_GAP && onTimes[j].end > mergedEnd) {
-                    mergedEnd = Math.max(mergedEnd, onTimes[j].end);
-                } else {
-                    if (typeof mergedStart === 'number' && typeof mergedEnd === 'number') {
-                        symbols.push({ start: mergedStart, end: mergedEnd });
-                    }
-                    mergedStart = onTimes[j].start;
-                    mergedEnd = onTimes[j].end;
-                }
-            }
-
-            if (typeof mergedStart === 'number' && typeof mergedEnd === 'number') {
-                symbols.push({ start: mergedStart, end: mergedEnd });
-            }
-
-            console.log(`Merged into ${symbols.length} symbol bursts`);
-
-            let allDurs = [];
-            for (let i = 0; i < symbols.length; i++) {
-                const sym = symbols[i];
-                if (!sym || typeof sym !== 'object') continue;
-                if (typeof sym.start !== 'number' || typeof sym.end !== 'number') continue;
-                if (sym.end <= sym.start) continue;
-
-                const durMs = (sym.end - sym.start) * 1000;
-                allDurs.push(durMs);
-            }
-
-            console.log(`All durations count: ${allDurs.length}`);
-            if (allDurs.length > 0) {
-                console.log(`All durations (ms): [${allDurs.map(d => d.toFixed(0)).join(', ')}]`);
-            }
-
-            if (!Array.isArray(allDurs) || allDurs.length === 0) {
-                return { decodedText: '', morseSequence: 'Error parsing signal' };
-            }
-
-            const sortedDurs = [...allDurs].sort((a, b) => a - b);
-            const midPoint2 = Math.floor(sortedDurs.length / 2);
-            let dotBase2 = Math.max(sortedDurs[midPoint2], 40);
-
-            console.log(`Estimated dot duration: ${dotBase2.toFixed(0)}ms`);
-
-            // Calculate gaps
-            let allGaps = [];
-            if (symbols.length > 1) {
-                for (let k = 1; k < symbols.length; k++) {
-                    const gapMsBefore = symbols[k].start * 1000 - symbols[k - 1].end * 1000;
-                    allGaps.push(gapMsBefore);
-                }
-            }
-
-            console.log(`All gaps between symbols (ms): [${allGaps.map(g => g.toFixed(0)).join(', ')}]`);
-
-            let letterGapThreshold = dotBase2 * 3.0;
-            let wordGapThreshold = dotBase2 * 6.0;
-
-            // Around line 1410 in decodeFileBuffer()
-            if (allGaps.length >= 3) {
-                const gapClusters = kmeans1D(allGaps, 4, 20);  // Changed from 3 to 4
-                const sortedCentroids = gapClusters.centroids.sort((a, b) => a - b);
-    
-                const gap1 = sortedCentroids[1] - sortedCentroids[0];
-                const gap2 = sortedCentroids[2] - sortedCentroids[1];
-                const gap3 = sortedCentroids[3] - sortedCentroids[2];
-    
-                console.log(`K-means 4-cluster analysis:`);
-                console.log(`  Within-letter: ${sortedCentroids[0].toFixed(0)}ms`);
-                console.log(`  Between-letter: ${sortedCentroids[1].toFixed(0)}ms`);
-                console.log(`  Between-word (short): ${sortedCentroids[2].toFixed(0)}ms`);
-                console.log(`  Between-word (long): ${sortedCentroids[3].toFixed(0)}ms`);
-    
-                if (gap1 > 50 && gap2 > 50 && gap3 > 50) {
-                    letterGapThreshold = (sortedCentroids[0] + sortedCentroids[1]) / 2;
-                    wordGapThreshold = (sortedCentroids[1] + sortedCentroids[2]) / 2;
-        
-                    console.log(`Letter gap threshold: ${letterGapThreshold.toFixed(0)}ms (adaptive)`);
-                    console.log(`Word gap threshold: ${wordGapThreshold.toFixed(0)}ms (adaptive)`);
-                } else {
-                    // Fallback
-                    letterGapThreshold = dotBase2 * 2.0;
-                    wordGapThreshold = dotBase2 * 5.0;
-                }
-            } else {
-                // Not enough gaps for clustering, use standard ratios
-                console.log(`Insufficient gap data (${allGaps.length} gaps), using standard ratios`);
-                letterGapThreshold = dotBase2 * 2.0;
-                wordGapThreshold = dotBase2 * 5.0;
-                console.log(`Letter gap threshold: ${letterGapThreshold.toFixed(0)}ms (standard)`);
-                console.log(`Word gap threshold: ${wordGapThreshold.toFixed(0)}ms (standard)`);
-            }
-            // ========== IMPROVED CLUSTER DETECTION ENDS HERE ==========
-
-            const dotThreshold = dotBase2 * 1.4;
-
-            console.log(`Dot threshold: ${dotThreshold.toFixed(0)}ms`);
-            console.log(`Letter gap threshold: ${letterGapThreshold.toFixed(0)}ms (adaptive)`);
-            console.log(`Word gap threshold: ${wordGapThreshold.toFixed(0)}ms`);
-
-            let morseOutput = '';
-            const firstSymbolEndMs = symbols[0].end * 1000;
-            let prevSymbolEnd = firstSymbolEndMs;
-
-            for (let k = 0; k < symbols.length; k++) {
-                const symDuration = allDurs[k];
-
-                if (!symDuration || symDuration <= 0) continue;
-
-                // Check gap BEFORE adding current symbol
-                if (k > 0) {
-                    const gapMsBefore = symbols[k].start * 1000 - prevSymbolEnd;
-                    console.log(`Gap before: ${gapMsBefore.toFixed(1)}ms`);
-                    //
-                    if (gapMsBefore >= wordGapThreshold) {
-                        console.log(`WORD BREAK detected! Outputting "${morseOutput}"`);
-                        const decodedChar = morseToChar(morseOutput);
-                        // Only add space if the previous character wasn't punctuation
-                        if (decodedText.length > 0 && !/[!?.,;:]$/.test(decodedText)) {
-                            decodedText += decodedChar + ' ';
-                        } else {
-                            decodedText += decodedChar;
-                        }
-                        morseOutput = '';
-                    } else if (gapMsBefore >= letterGapThreshold) {
-                        console.log(`LETTER GAP detected! Outputting "${morseOutput}"`);
-                        decodedText += morseToChar(morseOutput);
-                        morseOutput = '';
-                    } else {
-                        console.log(`Small gap within letter, continuing...`);
-                    }
-                }
-
-                // NOW add the current symbol
-                const isDot = symDuration < dotThreshold;
-                morseOutput += isDot ? '.' : '-';
-                console.log(`Symbol ${k}: ${symDuration.toFixed(0)}ms (${isDot ? 'dot' : 'dash'}) → Morse so far: "${morseOutput}"`);
-
-                prevSymbolEnd = symbols[k].end * 1000;
-            }
-
-            if (morseOutput.length > 0) {
-                console.log(`Final Morse output: "${morseOutput}"`);
-                decodedText += morseToChar(morseOutput);
-            }
-
+            console.log(`Merged into ${decoded.mergedBursts.length} symbol bursts`);
+            console.log(`Estimated dot duration: ${decoded.dotBaseMs.toFixed(0)}ms`);
+            console.log(`Dot threshold: ${decoded.dotThresholdMs.toFixed(0)}ms`);
+            console.log(`Letter gap threshold: ${decoded.letterGapThresholdMs.toFixed(0)}ms`);
+            console.log(`Word gap threshold: ${decoded.wordGapThresholdMs.toFixed(0)}ms`);
             console.log(`Final decoded text: "${decodedText}"`);
 
             // Check if we actually decoded any valid characters (not just dots/dashes)
@@ -1628,41 +1657,64 @@
             return { centroids: centroids };
         }
 
-        var isDecoding = false;
+                // ========== START LISTENING LOGIC (FIXED) ==========
+        var isDecoding = false; // Ensure this flag exists at the top if not found, usually near line 1600
+
         function startListening() {
-            if (isDecoding) return;
+            // ✅ FIX: Check if already decoding. If so, STOP immediately on click.
+            if (isDecoding) {
+                stopDecoding();
+                return;
+            }
+
             var ctx = getAudioCtx();
             if (ctx.state === 'suspended') { ctx.resume(); }
-            stopDecoding();
+            
+            // Stop any lingering processes
+            stopDecoding(); // Ensure we don't double-attach streams
+            
             navigator.mediaDevices.getUserMedia({ audio: true })
                 .then(function (stream) {
                     micStream = stream;
-                    var ctx = getAudioCtx();
+                    var analyzer = getAnalyzer();
+                    
                     if (ctx.state === 'suspended') ctx.resume();
-                    if (activeSource) activeSource.disconnect();
+                    if (activeSource) activeSource.disconnect(); // Disconnect old
+                    
                     var source = ctx.createMediaStreamSource(stream);
-                    source.connect(getAnalyzer());
+                    source.connect(analyzer); // Connect to new analyzer instance
                     activeSource = source;
+                    
                     isDecoding = true;
-                    document.getElementById('btnListen').style.display = 'none';
-                    document.getElementById('btnStopDecode').style.display = '';
-                    document.getElementById('decodeStatus').className = 'status-dot active';
+                    document.getElementById('btnListen').style.display = 'none'; // Hide Start
+                    document.getElementById('btnStopDecode').style.display = 'inline-block'; // Show Stop
+                    
+                    document.getElementById('decodeStatus').className = 'status-dot playing';
                     document.getElementById('decodeStatusText').textContent = 'Listening to mic...';
+                    
+                    // Reset state
                     decoderState.dotDurationEstimate = parseInt(document.getElementById('dotEstimate').value);
                     decoderState.signalDurations = [];
                     decoderState.symbolBuffer = '';
                     decoderState.decodedText = '';
+                    decoderState.fullSignalBursts = [];
                     decoderState.inSignal = false;
                     decoderState.lastSignalEnd = 0;
+                    decoderState.lastDecodeRefresh = 0;
+                    
                     document.getElementById('decodeText').textContent = '';
-                    document.getElementById('currentSymbol').textContent = '\u2014';
+                    document.getElementById('currentSymbol').textContent = '\u2014'; // Dashes
+                    document.getElementById('detectedMorseDisplay').classList.remove('visible');
+                    
                     startDecodeLoop();
                 })
                 .catch(function (err) {
                     console.error('Mic error:', err);
                     alert('Microphone access denied. Please allow microphone access.');
+                    stopDecoding(); // Cleanup if failed
                 });
         }
+
         function stopListening() {
             if (!isDecoding) return;
             cancelAnimationFrame(decodeRAF);
@@ -1836,9 +1888,11 @@
             // ========== RESET NEW STATE FIELDS ==========
             decoderState.energyHistory = [];
             decoderState.signalBuffer = [];
+            decoderState.fullSignalBursts = [];
             decoderState.adaptiveLetterGap = null;
             decoderState.adaptiveWordGap = null;
             decoderState.lastBufferProcess = 0;
+            decoderState.lastDecodeRefresh = 0;
             // ========== END RESET ==========
 
             document.getElementById('btnListen').style.display = '';
@@ -1946,13 +2000,13 @@
                     ds.lastBufferProcess = now;
                 }
                 // ========== END IMPROVEMENT #4 (part 1) ==========
+
+                ds.fullSignalBursts.push({ start: ds.signalStart, end: now });
         
                 // ========== IMPROVEMENT #3: ADAPTIVE DOT DURATION ==========
-                // Determine if this is a dot or dash based on current estimate
+                // Keep legacy duration tracking to stabilize adaptive estimates.
                 var dotEst = ds.dotDurationEstimate;
                 var symbol = (signalDur < dotEst * 1.8) ? '.' : '-';
-                ds.symbolBuffer += symbol;
-                document.getElementById('currentSymbol').textContent = ds.symbolBuffer;
                 ds.lastSignalEnd = now;
         
                 // Track signal durations for adaptive learning
@@ -1977,40 +2031,16 @@
                     }
                 }
                 // ========== END IMPROVEMENT #3 ==========
+
+                refreshMicDecodeFromBursts(now);
+                ds.lastDecodeRefresh = now;
             }
 
             // ========== UPDATED GAP DETECTION (uses adaptive thresholds from #4) ==========
-            if (!ds.inSignal && ds.symbolBuffer.length > 0) {
-                var silence = now - ds.lastSignalEnd;
-                var dotEst = ds.dotDurationEstimate;
-        
-                // Use adaptive thresholds if available, otherwise fall back to fixed ratios
-                const letterGapThreshold = ds.adaptiveLetterGap || (dotEst * 3);
-                const wordGapThreshold = ds.adaptiveWordGap || (dotEst * 7);
-        
-                if (silence >= wordGapThreshold) {
-                    console.log(`📝 WORD BREAK (${silence.toFixed(0)}ms >= ${wordGapThreshold.toFixed(0)}ms)`);
-                    decodeSymbol(ds.symbolBuffer);
-                    ds.decodedText += ' ';
-                    ds.symbolBuffer = '';
-                    document.getElementById('currentSymbol').textContent = '\u2014';
-                    updateDecodeDisplay();
-                    ds.lastSignalEnd = now;
-                } else if (silence >= letterGapThreshold) {
-                    console.log(`📝 LETTER GAP (${silence.toFixed(0)}ms >= ${letterGapThreshold.toFixed(0)}ms)`);
-                    decodeSymbol(ds.symbolBuffer);
-                    ds.symbolBuffer = '';
-                    document.getElementById('currentSymbol').textContent = '\u2014';
-                    updateDecodeDisplay();
-                    ds.lastSignalEnd = now;
-                } else if (silence >= 2500) {
-                    // Fallback timeout
-                    console.log(`⏱️ TIMEOUT (${silence.toFixed(0)}ms)`);
-                    decodeSymbol(ds.symbolBuffer);
-                    ds.symbolBuffer = '';
-                    document.getElementById('currentSymbol').textContent = '\u2014';
-                    updateDecodeDisplay();
-                    ds.lastSignalEnd = now;
+            if (!ds.inSignal && ds.fullSignalBursts.length > 0) {
+                if (now - ds.lastDecodeRefresh >= 150) {
+                    refreshMicDecodeFromBursts(now);
+                    ds.lastDecodeRefresh = now;
                 }
             }
     
@@ -2024,7 +2054,7 @@
             var w = canvas.width = canvas.offsetWidth * 2;
             var h = canvas.height = canvas.offsetHeight * 2;
             ctx.clearRect(0, 0, w, h);
-            ctx.fillStyle = '#1a1d27';
+            ctx.fillStyle = 'var(--surface)';
             ctx.fillRect(0, 0, w, h);
             ctx.strokeStyle = 'rgba(231, 76, 60, 0.27)';
             ctx.lineWidth = 1;
@@ -2035,7 +2065,7 @@
             ctx.lineTo(w, threshY);
             ctx.stroke();
             ctx.setLineDash([]);
-            ctx.strokeStyle = energy > threshold ? '#f1c40f' : '#6c63ff';
+            ctx.strokeStyle = energy > threshold ? 'var(--yellow)' : 'var(--accent)';
             ctx.lineWidth = 2;
             ctx.beginPath();
             var sliceWidth = w / data.length;
@@ -2052,7 +2082,7 @@
             }
             ctx.stroke();
             var energyBar = Math.min(1, energy * 5);
-            var barColor = energy > threshold ? '#2ecc71' : '#e74c3c';
+            var barColor = energy > threshold ? 'var(--green)' : 'var(--red)';
             ctx.fillStyle = barColor + '33';
             ctx.fillRect(0, 0, w * energyBar, 3);
         }
