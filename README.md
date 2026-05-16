@@ -205,8 +205,8 @@ See the full license in the LICENSE file.
 ## 👨‍💻 Author
 
 **Jeffrey Lassen**  
-Version: `1.2.1`  
-Last Updated: `05/08/2026`
+Version: `1.2.7`  
+Last Updated: `05/16/2026`
 
 https://github.com/jhlassen17
 
