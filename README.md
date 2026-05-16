@@ -195,9 +195,10 @@ No frameworks. No build tools.
 ---
 
 ## 📄 License
+This project is licensed under the MIT License.
 
-© 2026 Lassens.IT  
-All rights reserved unless otherwise specified.
+See the full license in the LICENSE file.
+
 
 ---
 
@@ -206,6 +207,8 @@ All rights reserved unless otherwise specified.
 **Jeffrey Lassen**  
 Version: `1.2.1`  
 Last Updated: `05/08/2026`
+
+https://github.com/jhlassen17
 
 ---
 
