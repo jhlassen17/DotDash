@@ -9,8 +9,8 @@
     Save a copy for offline use, all functions should work locally.
 
     @Author: Jeffrey Lassen
-    @Version: 1.2.5
-    @LastUpdated: 05/08/2026
+    @Version: 1.2.7
+    @LastUpdated: 05/11/2026
 
     -->
 <head>
@@ -926,7 +926,10 @@
                 <button class="btn-stop" id="btnStopDecode" onclick="stopDecoding()" style="display:none;">🛑 Stop</button>
                 <!-- File Upload -->
                 <label class="file-label" for="fileInput">&#128196; Upload Audio File (mp3, m4a, wav, ogg)</label>
-                <input type="file" id="fileInput" accept="audio/*" onchange="handleFileUpload(this.files[0])">
+                <input type="file" 
+                    id="fileInput" 
+                    accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/x-m4a,audio/aac,audio/ogg,audio/webm,audio/*" 
+                    onchange="handleFileUpload(this.files[0])">
                 <button class="btn-clear" onclick="clearDecode()">&#128465; Clear</button>
                 <button class="btn-reset" onclick="resetControls()" title="Reset all sliders to default">🛠 Reset Sliders</button>
             </div>
@@ -944,7 +947,7 @@
     </div>
     <div>
         <!-- Footer -->
-        <h6>&#0169 (2026) - Lassens.IT - Made with ❤️. Version: 1.2.5 - <a href="https://buymeacoffee.com/hanf" title="Support Us">Buy us a drink</a></h6>
+        <h6>&#0169 (2026) - Lassens.IT - Made with ❤️. Version: 1.2.7 - <a href="https://buymeacoffee.com/hanf" title="Support Us">Buy us a drink</a></h6>
     </div>
     <script>
         // ========== GLOBAL CONSTANTS & STATE ==========
@@ -970,6 +973,16 @@
         for (var key in MORSE_MAP) {
             if (!(MORSE_MAP[key] in REVERSE_MORSE)) REVERSE_MORSE[MORSE_MAP[key]] = key;
         }
+
+        var inDebugMode = false; // Set to true to enable console logs for debugging
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('debug') === 'true') {
+            inDebugMode = true;
+        }
+
+        // Debug
+        debugLogMessage('Debug mode enabled');
+
         // Build Reference Table
         (function () {
             var el = document.getElementById('refTable');
@@ -1343,7 +1356,7 @@
                 btn.disabled = false;
                 statusDot.className = 'status-dot';
                 statusText.textContent = 'Error: ' + err.message;
-                console.error(err);
+                errorLogMessage(err);
             });
         }
         function audioBufferToWav(buffer) {
@@ -1445,7 +1458,7 @@
             } else {
                 const cleaned = morse.replace(/[^.\-\/ ]+/g, '');
                 if (cleaned === '') return ' ';
-                console.warn(`Unknown morse sequence: ${morse}`);
+                warnLogMessage(`Unknown morse sequence: ${morse}`);
                 return cleaned;
             }
         }
@@ -1635,9 +1648,9 @@
             }
             const overallRMS = Math.sqrt(sumSquaredGlobal / samples.length);
 
-            console.log(`=== HELLO.WAV DECODE ===`);
-            console.log(`Overall RMS: ${overallRMS.toFixed(4)}`);
-            console.log(`Sample rate: ${sampleRate}`);
+            debugLogMessage(`=== HELLO.WAV DECODE ===`);
+            debugLogMessage(`Overall RMS: ${overallRMS.toFixed(4)}`);
+            debugLogMessage(`Sample rate: ${sampleRate}`);
 
             let onTimes = [];
             for (let i = 0; i < samples.length; i += 200) {
@@ -1659,14 +1672,14 @@
                 }
             }
 
-            console.log(`Found ${onTimes.length} signal bursts`);
+            debugLogMessage(`Found ${onTimes.length} signal bursts`);
 
             if (onTimes.length < 3) {
                 return { decodedText: '', morseSequence: 'Too few signals' };
             }
 
             const validBursts = onTimes.filter(t => typeof t.start === 'number' && typeof t.end === 'number' && t.start < t.end);
-            console.log(`Valid bursts after filter: ${validBursts.length}`);
+            debugLogMessage(`Valid bursts after filter: ${validBursts.length}`);
 
             if (validBursts.length < 3) {
                 return { decodedText: '', morseSequence: 'Too few valid signals' };
@@ -1685,11 +1698,11 @@
             const sortedRawDurs = [...rawDurations].sort((a, b) => a - b);
             const midPoint = Math.floor(sortedRawDurs.length / 2);
             const dotBase = Math.max(sortedRawDurs[midPoint], 40);
-            console.log(`Estimated dot duration (pre-merge): ${dotBase.toFixed(0)}ms`);
+            debugLogMessage(`Estimated dot duration (pre-merge): ${dotBase.toFixed(0)}ms`);
 
             // Calculate adaptive merge gap (30% of dot duration, minimum 30ms)
             const MERGE_GAP = Math.max(dotBase * 0.3, 30);
-            console.log(`Adaptive merge gap: ${MERGE_GAP.toFixed(0)}ms`);
+            debugLogMessage(`Adaptive merge gap: ${MERGE_GAP.toFixed(0)}ms`);
 
             var burstsMs = onTimes.map(function (t) {
                 return { start: t.start * 1000, end: t.end * 1000 };
@@ -1697,12 +1710,12 @@
             var decoded = decodeBurstsToText(burstsMs, { trailingSilenceMs: 10000 });
             decodedText = decoded.decodedText;
 
-            console.log(`Merged into ${decoded.mergedBursts.length} symbol bursts`);
-            console.log(`Estimated dot duration: ${decoded.dotBaseMs.toFixed(0)}ms`);
-            console.log(`Dot threshold: ${decoded.dotThresholdMs.toFixed(0)}ms`);
-            console.log(`Letter gap threshold: ${decoded.letterGapThresholdMs.toFixed(0)}ms`);
-            console.log(`Word gap threshold: ${decoded.wordGapThresholdMs.toFixed(0)}ms`);
-            console.log(`Final decoded text: "${decodedText}"`);
+            debugLogMessage(`Merged into ${decoded.mergedBursts.length} symbol bursts`);
+            debugLogMessage(`Estimated dot duration: ${decoded.dotBaseMs.toFixed(0)}ms`);
+            debugLogMessage(`Dot threshold: ${decoded.dotThresholdMs.toFixed(0)}ms`);
+            debugLogMessage(`Letter gap threshold: ${decoded.letterGapThresholdMs.toFixed(0)}ms`);
+            debugLogMessage(`Word gap threshold: ${decoded.wordGapThresholdMs.toFixed(0)}ms`);
+            debugLogMessage(`Final decoded text: "${decodedText}"`);
 
             // Check if we actually decoded any valid characters (not just dots/dashes)
             const hasValidChars = decodedText.trim().length > 0 && /[A-Z0-9]/.test(decodedText);
@@ -1714,7 +1727,7 @@
         }
 
         // 
-        console.log('Fixed decodeFileBuffer function ready');
+        debugLogMessage('Fixed decodeFileBuffer function ready');
 
         // 
         function avg(arr) {
@@ -1801,7 +1814,7 @@
                     startDecodeLoop();
                 })
                 .catch(function (err) {
-                    console.error('Mic error:', err);
+                    errorLogMessage('Mic error:', err);
                     alert('Microphone access denied. Please allow microphone access.');
                     stopDecoding(); // Cleanup if failed
                 });
@@ -1822,11 +1835,11 @@
         function handleFileUpload(file) {
             if (!file || !file.type.startsWith('audio/')) return;
 
-            console.log('=== FILE UPLOAD DEBUG ===');
-            console.log('File name:', file.name);
-            console.log('File type:', file.type);
-            console.log('File size:', file.size, 'bytes');
-            console.log('Audio context state:', getAudioCtx().state);
+            debugLogMessage('=== FILE UPLOAD DEBUG ===');
+            debugLogMessage('File name: ' + file.name);
+            debugLogMessage('File type: ' + file.type);
+            debugLogMessage('File size: ' + file.size + ' bytes');
+            debugLogMessage('Audio context state: ' + getAudioCtx().state);
 
             var reader = new FileReader();
 
@@ -1836,7 +1849,7 @@
                     ctx.resume();
                 }
 
-                console.log('Audio data loaded, starting decode...');
+                debugLogMessage('Audio data loaded, starting decode...');
 
                 // Clear previous file input value
                 document.getElementById('fileInput').value = '';
@@ -1849,10 +1862,10 @@
                         const samples = buffer.getChannelData(0);
                         const sampleRate = buffer.sampleRate;
 
-                        console.log('=== DECODE SUCCESS ===');
-                        console.log('Buffer length:', buffer.length);
-                        console.log('Sample rate:', buffer.sampleRate);
-                        console.log('Channel count:', buffer.numberOfChannels);
+                        debugLogMessage('=== DECODE SUCCESS ===');
+                        debugLogMessage('Buffer length: ' + buffer.length);
+                        debugLogMessage('Sample rate: ' + buffer.sampleRate);
+                        debugLogMessage('Channel count: ' + buffer.numberOfChannels);
 
                         // Quick volume sanity check on first samples
                         let sum = 0;
@@ -1863,14 +1876,14 @@
                         const avgSample = (sum / checkLimit).toFixed(4);
 
                         if (sum < 500) {
-                            console.warn('⚠️ AUDIO FILE APPEARS VERY QUIET!');
-                            console.log('Average sample magnitude:', avgSample);
+                            warnLogMessage('⚠️ AUDIO FILE APPEARS VERY QUIET!');
+                            debugLogMessage('Average sample magnitude:', avgSample);
                         }
 
-                        console.log('=== SAMPLES DEBUG ===');
-                        console.log('Samples array length:', samples.length);
+                        debugLogMessage('=== SAMPLES DEBUG ===');
+                        debugLogMessage('Samples array length: ' + samples.length);
                         if (samples.length > 0) {
-                            console.log('First 10 samples:', samples.slice(0, 10).map(s => parseFloat(s.toFixed(4))));
+                            debugLogMessage('First 10 samples: ' + samples.slice(0, 10).map(s => parseFloat(s.toFixed(4))));
                         }
 
                         // Energy diagnostics (simplified for readability)
@@ -1885,33 +1898,33 @@
                         }
 
                         if (nonZeroCount === 0) {
-                            console.error('⚠️ AUDIO FILE IS SILENT - All samples are zero!');
-                            console.error('This file has no audio data or volume is muted.');
+                            errorLogMessage('⚠️ AUDIO FILE IS SILENT - All samples are zero!');
+                            errorLogMessage('This file has no audio data or volume is muted.');
                             return;
                         }
 
                         document.getElementById('decodeStatusText').textContent = 'Decoding...';
-                        console.log('\n=== THRESHOLD DEBUG ===');
-                        console.log('Energy threshold for detection: 0.05');
+                        debugLogMessage('\n=== THRESHOLD DEBUG ===');
+                        debugLogMessage('Energy threshold for detection: 0.05');
 
                         // Call decode function with buffer
                         const result = decodeFileBuffer(buffer);
 
-                        console.log('=== DECODE RESULT ===');
-                        console.log('Decoded text:', result.decodedText || '(empty)');
-                        console.log('Morse sequence:', result.morseSequence || '(none)');
+                        debugLogMessage('=== DECODE RESULT ===');
+                        debugLogMessage('Decoded text: ' + (result.decodedText || '(empty)'));
+                        debugLogMessage('Morse sequence: ' + (result.morseSequence || '(none)'));
 
                         // Update UI with results
                         // Update UI with results
                         document.getElementById('decodeText').textContent = result.decodedText || '';
                         
                         if (!result.decodedText) {
-                            console.log('✓ Text decoded successfully:', result.decodedText);
+                            debugLogMessage('✓ Text decoded successfully: ' + result.decodedText);
                             document.getElementById('decodeStatusText').textContent = 'No Morse detected.';
                             document.getElementById('detectedMorseDisplay').textContent = '';
                             document.getElementById('detectedMorseDisplay').classList.remove('visible');
                         } else {
-                            console.log('✗ Processing complete');
+                            debugLogMessage('✗ Processing complete');
                             const charCount = (result.decodedText || '').replace(/\s/g, '').length;
                             document.getElementById('decodeStatusText').textContent = result.morseSequence === 'File Decoded' ? `Decoded: ${charCount} chars` : result.morseSequence;
                             
@@ -1926,7 +1939,7 @@
                         }, 2000);
                     })
                     .catch(err => {
-                        console.error('Error decoding file:', err);
+                        errorLogMessage('Error decoding file: ' + err);
                         alert('Error decoding file: ' + err.message);
                         document.getElementById('decodeStatusText').textContent = 'Error';
                         resetDecodeUI();
@@ -1934,7 +1947,7 @@
             };
 
             reader.onerror = function () {
-                console.error('File read error');
+                errorLogMessage('File read error');
                 document.getElementById('decodeStatusText').textContent = 'Read Error';
                 resetDecodeUI();
             };
@@ -2047,7 +2060,7 @@
                 onThreshold = Math.max(avgEnergy * 2.0, 0.01);
                 offThreshold = onThreshold * 0.6;
         
-                console.log(`📊 Adaptive threshold: ${onThreshold.toFixed(4)} (avg: ${avgEnergy.toFixed(4)}, max: ${maxEnergy.toFixed(4)})`);
+                debugLogMessage(`📊 Adaptive threshold: ${onThreshold.toFixed(4)} (avg: ${avgEnergy.toFixed(4)}, max: ${maxEnergy.toFixed(4)})`);
             }
             // ========== END IMPROVEMENT #2 ==========
     
@@ -2068,12 +2081,12 @@
             if (result.energy > onThreshold && !ds.inSignal) {
                 ds.inSignal = true;
                 ds.signalStart = now;
-                console.log(`🔊 Signal START at ${now.toFixed(0)}ms (energy: ${result.energy.toFixed(4)})`);
+                debugLogMessage(`🔊 Signal START at ${now.toFixed(0)}ms (energy: ${result.energy.toFixed(4)})`);
             } else if (result.energy < offThreshold && ds.inSignal) {
                 ds.inSignal = false;
                 var signalDur = now - ds.signalStart;
         
-                console.log(`🔇 Signal END at ${now.toFixed(0)}ms (duration: ${signalDur.toFixed(0)}ms)`);
+                debugLogMessage(`🔇 Signal END at ${now.toFixed(0)}ms (duration: ${signalDur.toFixed(0)}ms)`);
         
                 // ========== IMPROVEMENT #4: ADD TO SIGNAL BUFFER ==========
                 ds.signalBuffer.push({
@@ -2119,7 +2132,7 @@
                     // Only update if change is significant (>10%) to avoid jitter
                     if (Math.abs(newEstimate - ds.dotDurationEstimate) / ds.dotDurationEstimate > 0.1) {
                         ds.dotDurationEstimate = newEstimate;
-                        console.log(`📊 Adaptive dot duration updated: ${ds.dotDurationEstimate.toFixed(0)}ms`);
+                        debugLogMessage(`📊 Adaptive dot duration updated: ${ds.dotDurationEstimate.toFixed(0)}ms`);
                     }
                 }
                 // ========== END IMPROVEMENT #3 ==========
@@ -2327,9 +2340,9 @@
             const sampleRate = buffer.sampleRate;
             const baseFreq = 700;
     
-            console.log('=== RAW SIGNAL ANALYSIS ===');
-            console.log('Samples length:', samples.length);
-            console.log('Sample rate:', sampleRate);
+            debugLogMessage('=== RAW SIGNAL ANALYSIS ===');
+            debugLogMessage('Samples length: ' + samples.length);
+            debugLogMessage('Sample rate: ' + sampleRate);
     
             // Test a few time windows manually
             const testWindows = [0, sampleRate * 0.5, Math.min(sampleRate, buffer.length - 1)];
@@ -2342,10 +2355,10 @@
                 const detector = new SignalDetector(sampleRate);
                 const result = detector.process(windowSamples, baseFreq, 20);
         
-                console.log('Window at t=' + (i / sampleRate * 1000).toFixed(1) + 'ms:');
-                console.log('  - Duration:', windowSize / sampleRate * 1000, 'ms');
-                console.log('  - Energy:', result.energy);
-                console.log('  - Frequency detected:', result.freq);
+                debugLogMessage('Window at t=' + (i / sampleRate * 1000).toFixed(1) + 'ms:');
+                debugLogMessage('  - Duration: ' + (windowSize / sampleRate * 1000) + ' ms');
+                debugLogMessage('  - Energy: ' + result.energy);
+                debugLogMessage('  - Frequency detected: ' + result.freq);
             }
         }
 
@@ -2354,10 +2367,10 @@
             for (let i = 0; i < samples.length && i < 10000; i++) {
                 sum += Math.abs(samples[i]);
             }
-            console.log('First 10k samples absolute value sum:', sum);
-            console.log('Average sample magnitude in first 10k:', (sum / 10000).toFixed(4));
+            debugLogMessage('First 10k samples absolute value sum: ' + sum);
+            debugLogMessage('Average sample magnitude in first 10k: ' + (sum / 10000).toFixed(4));
             if (sum < 1000) {
-                console.warn('⚠️ WARNING: Audio file appears very quiet or silent!');
+                debugLogMessage('⚠️ WARNING: Audio file appears very quiet or silent!');
             }
         }
 
@@ -2379,7 +2392,7 @@
 
             if (gaps.length < 3) return;
 
-            console.log(`🔍 Processing buffer: ${ds.signalBuffer.length} signals, ${gaps.length} gaps`);
+            debugLogMessage(`🔍 Processing buffer: ${ds.signalBuffer.length} signals, ${gaps.length} gaps`);
 
             // Apply k-means to find thresholds (same as file upload)
             try {
@@ -2390,22 +2403,22 @@
                 const gap1 = sortedCentroids[1] - sortedCentroids[0];
                 const gap2 = sortedCentroids[2] - sortedCentroids[1];
 
-                console.log(`📊 K-means clusters: ${sortedCentroids.map(c => c.toFixed(0)).join('ms, ')}ms`);
-                console.log(`📊 Cluster separations: ${gap1.toFixed(0)}ms, ${gap2.toFixed(0)}ms`);
+                debugLogMessage(`📊 K-means clusters: ${sortedCentroids.map(c => c.toFixed(0)).join('ms, ')}ms`);
+                debugLogMessage(`📊 Cluster separations: ${gap1.toFixed(0)}ms, ${gap2.toFixed(0)}ms`);
 
                 if (gap1 > 50 && gap2 > 50) {
                     // Clusters are distinct - update adaptive thresholds
                     ds.adaptiveLetterGap = (sortedCentroids[0] + sortedCentroids[1]) / 2;
                     ds.adaptiveWordGap = (sortedCentroids[1] + sortedCentroids[2]) / 2;
 
-                    console.log(`🎯 Adaptive thresholds updated:`);
-                    console.log(`   Letter gap: ${ds.adaptiveLetterGap.toFixed(0)}ms`);
-                    console.log(`   Word gap: ${ds.adaptiveWordGap.toFixed(0)}ms`);
+                    debugLogMessage(`🎯 Adaptive thresholds updated:`);
+                    debugLogMessage(`   Letter gap: ${ds.adaptiveLetterGap.toFixed(0)}ms`);
+                    debugLogMessage(`   Word gap: ${ds.adaptiveWordGap.toFixed(0)}ms`);
                 } else {
-                    console.log(`⚠️ Clusters too similar, keeping existing thresholds`);
+                    debugLogMessage(`⚠️ Clusters too similar, keeping existing thresholds`);
                 }
             } catch (err) {
-                console.warn(`K-means failed:`, err);
+                warnLogMessage(`K-means failed: ${err}`);
             }
         }
 
@@ -2440,6 +2453,24 @@
                 encodeStatus.className = 'status-dot';
                 statusText.textContent = 'Ready';
             }, 1000);
+        }
+
+        function debugLogMessage(message) {
+            if (inDebugMode) {
+                console.log('DEBUG:', message);
+            }
+        }
+
+        function warnLogMessage(message) {
+            if (inDebugMode) {
+                console.warn('WARN:', message);
+            }
+        }
+
+        function errorLogMessage(message) {
+            if (inDebugMode) {
+                console.error('ERROR:', message);
+            }
         }
     </script>
 </body>
