@@ -756,15 +756,11 @@
             }
 
             process(samples, targetFreq, sensitivity) {
-                if (samples.length === 0) return { energy: 0 };
+                if (samples.length === 0) return { energy: 0, threshold: 0.01, freq: targetFreq };
 
-                let sumSquared = 0;
-                for (let i = 0; i < samples.length; i++) {
-                    sumSquared += samples[i] * samples[i];
-                }
-
-                const rms = Math.sqrt(sumSquared / samples.length);
-                const energy = rms * rms;
+                // Frequency-selective energy via Goertzel, tuned to the configured
+                // tone frequency, so background noise at other frequencies is rejected.
+                const energy = this.goertzel(samples, targetFreq);
 
                 const noiseFloor = 0.01;
                 const threshold = noiseFloor + (sensitivity / 500);
@@ -963,7 +959,6 @@
             el.innerHTML = html;
         })();
         
-        var detector = new SignalDetector(getAudioCtx().sampleRate);
         var encodeInput = document.getElementById('encodeInput');
         var morsePreview = document.getElementById('morsePreview');
         
@@ -1013,16 +1008,19 @@
             var resultEl = document.getElementById('manualDecodeResult');
             var countEl = document.getElementById('manualDecodeCount');
             var resultLbl = document.getElementById('decodedMorseLabel');
+            var statusDot = document.getElementById('manualDecodeStatus');
             if (!raw) {
                 resultEl.innerHTML = '<span class="error">Please enter some Morse code.</span>';
                 resultEl.classList.add('visible');
                 countEl.textContent = '0 chars';
                 resultLbl.classList.add('visible');
+                if (statusDot) statusDot.className = 'status-dot';
                 return;
             }
             if (!/^[\.\-\/\s]+$/.test(raw)) {
                 resultEl.innerHTML = '<span class="error">Invalid characters.</span>';
                 countEl.textContent = '0 chars';
+                if (statusDot) statusDot.className = 'status-dot';
                 return;
             }
             var normalized = raw.replace(/\//g, '   ');
@@ -1048,8 +1046,10 @@
             countEl.textContent = charCount + ' chars';
             if (hasError) {
                 resultEl.innerHTML = output + '<br><span class="error">Unknown sequences in [brackets]</span>';
+                if (statusDot) statusDot.className = 'status-dot rendering';
             } else {
                 resultEl.innerHTML = output;
+                if (statusDot) statusDot.className = 'status-dot active';
             }
             resultEl.classList.add('visible');
             resultLbl.classList.add('visible');
@@ -1070,6 +1070,8 @@
             var resultLbl = document.getElementById('decodedMorseLabel');
             resultLbl.classList.remove('visible');
             document.getElementById('manualDecodeCount').innerHTML = 'Ready';
+            var statusDot = document.getElementById('manualDecodeStatus');
+            if (statusDot) statusDot.className = 'status-dot';
             input.focus();
         }
         
@@ -1421,7 +1423,8 @@
                     dotThresholdMs: 0,
                     letterGapThresholdMs: 0,
                     wordGapThresholdMs: 0,
-                    mergedBursts: []
+                    mergedBursts: [],
+                    rawMorse: ''
                 };
             }
 
@@ -1440,7 +1443,8 @@
                     dotThresholdMs: 0,
                     letterGapThresholdMs: 0,
                     wordGapThresholdMs: 0,
-                    mergedBursts: []
+                    mergedBursts: [],
+                    rawMorse: ''
                 };
             }
 
@@ -1476,7 +1480,8 @@
                     dotThresholdMs: 0,
                     letterGapThresholdMs: 0,
                     wordGapThresholdMs: 0,
-                    mergedBursts: merged
+                    mergedBursts: merged,
+                    rawMorse: ''
                 };
             }
 
@@ -1514,12 +1519,15 @@
 
             var decodedText = '';
             var currentMorse = '';
+            var rawMorseTokens = [];
 
             function flushSymbol(addWordSpace) {
                 if (!currentMorse) return;
                 decodedText += morseToChar(currentMorse);
+                rawMorseTokens.push(currentMorse);
                 if (addWordSpace && decodedText.length > 0 && decodedText[decodedText.length - 1] !== ' ') {
                     decodedText += ' ';
+                    rawMorseTokens.push('/');
                 }
                 currentMorse = '';
             }
@@ -1553,7 +1561,8 @@
                 dotThresholdMs: dotThresholdMs,
                 letterGapThresholdMs: letterGapThresholdMs,
                 wordGapThresholdMs: wordGapThresholdMs,
-                mergedBursts: merged
+                mergedBursts: merged,
+                rawMorse: rawMorseTokens.join(' ')
             };
         }
 
@@ -1578,6 +1587,21 @@
 
             document.getElementById('decodeText').textContent = ds.decodedText;
             document.getElementById('currentSymbol').textContent = decoded.partialMorse && decoded.partialMorse.length > 0 ? decoded.partialMorse : '\u2014';
+
+            var morseDisplay = document.getElementById('detectedMorseDisplay');
+            var morseLabel = document.getElementById('detectedMorseLabel');
+            var outputLabel = document.getElementById('decodeOutputLabel');
+            if (decoded.rawMorse) {
+                morseDisplay.textContent = decoded.rawMorse;
+                morseDisplay.classList.add('visible');
+                morseLabel.classList.add('visible');
+                outputLabel.classList.add('visible');
+            } else {
+                morseDisplay.textContent = '';
+                morseDisplay.classList.remove('visible');
+                morseLabel.classList.remove('visible');
+                outputLabel.classList.remove('visible');
+            }
         }
 
         // ========== FILE DECODE: Uses decodeBurstsToText ==========
@@ -1657,6 +1681,7 @@
             });
             var decoded = decodeBurstsToText(burstsMs, { trailingSilenceMs: 10000 });
             decodedText = decoded.decodedText;
+            const rawMorse = decoded.rawMorse;
 
             debugLogMessage(`Merged into ${decoded.mergedBursts.length} symbol bursts`);
             debugLogMessage(`Estimated dot duration: ${decoded.dotBaseMs.toFixed(0)}ms`);
@@ -1669,7 +1694,8 @@
 
             return {
                 decodedText: decodedText,
-                morseSequence: hasValidChars ? 'File Decoded' : 'No Morse detected'
+                morseSequence: hasValidChars ? 'File Decoded' : 'No Morse detected',
+                rawMorse: rawMorse
             };
         }
 
@@ -1749,7 +1775,10 @@
                     
                     document.getElementById('decodeText').textContent = '';
                     document.getElementById('currentSymbol').textContent = '\u2014';
+                    document.getElementById('detectedMorseDisplay').textContent = '';
                     document.getElementById('detectedMorseDisplay').classList.remove('visible');
+                    document.getElementById('detectedMorseLabel').classList.remove('visible');
+                    document.getElementById('decodeOutputLabel').classList.remove('visible');
                     
                     startDecodeLoop();
                 })
@@ -1829,14 +1858,26 @@
                         debugLogMessage('Decoded text: ' + (result.decodedText || '(empty)'));
 
                         document.getElementById('decodeText').textContent = result.decodedText || '';
-                        
+
+                        var morseDisplay = document.getElementById('detectedMorseDisplay');
+                        var morseLabel = document.getElementById('detectedMorseLabel');
+                        var outputLabel = document.getElementById('decodeOutputLabel');
+
                         if (!result.decodedText) {
                             document.getElementById('decodeStatusText').textContent = 'No Morse detected.';
-                            document.getElementById('detectedMorseDisplay').textContent = '';
-                            document.getElementById('detectedMorseDisplay').classList.remove('visible');
+                            morseDisplay.textContent = '';
+                            morseDisplay.classList.remove('visible');
+                            morseLabel.classList.remove('visible');
+                            outputLabel.classList.remove('visible');
                         } else {
                             const charCount = (result.decodedText || '').replace(/\s/g, '').length;
                             document.getElementById('decodeStatusText').textContent = result.morseSequence === 'File Decoded' ? `Decoded: ${charCount} chars` : result.morseSequence;
+                            if (result.rawMorse) {
+                                morseDisplay.textContent = result.rawMorse;
+                                morseDisplay.classList.add('visible');
+                                morseLabel.classList.add('visible');
+                                outputLabel.classList.add('visible');
+                            }
                         }
 
                         setTimeout(function () {
@@ -1895,11 +1936,21 @@
             document.getElementById('decodeStatusText').textContent = 'Ready';
         }
 
+        var micSignalDetector = null;
+        function getSignalDetector() {
+            var ctx = getAudioCtx();
+            if (!micSignalDetector || micSignalDetector.sampleRate !== ctx.sampleRate) {
+                micSignalDetector = new SignalDetector(ctx.sampleRate);
+            }
+            return micSignalDetector;
+        }
+
         function startDecodeLoop() {
             if (!isDecoding) return;
             var canvas = document.getElementById('waveformCanvas');
             decoderState.canvasCtx = canvas.getContext('2d');
             decoderState.waveformData = new Uint8Array(getAnalyzer().frequencyBinCount);
+            decoderState.timeData = new Float32Array(getAnalyzer().fftSize);
             decodeRAF = requestAnimationFrame(decodeLoop);
             decodeLoop();
         }
@@ -1918,13 +1969,12 @@
             var sensitivity = parseInt(document.getElementById('sensitivity').value);
     
             const analyzer = getAnalyzer();
-            const timeData = new Float32Array(analyzer.fftSize);
+            const timeData = ds.timeData;
             analyzer.getFloatTimeDomainData(timeData);
 
-            var ctx = getAudioCtx();
-            const tempDetector = new SignalDetector(ctx.sampleRate);
+            const signalDetector = getSignalDetector();
 
-            var result = tempDetector.process(timeData, baseFreq, sensitivity);
+            var result = signalDetector.process(timeData, baseFreq, sensitivity);
             var energy = result.energy;
             var threshold = result.threshold;
             var targetFreq = result.freq;
@@ -1939,7 +1989,9 @@
     
             if (ds.energyHistory.length >= 20) {
                 const avgEnergy = ds.energyHistory.reduce((a, b) => a + b, 0) / ds.energyHistory.length;
-                onThreshold = Math.max(avgEnergy * 2.0, 0.01);
+                // Use the sensitivity-derived threshold as a floor so the Sensitivity
+                // slider still has an effect after the adaptive average kicks in.
+                onThreshold = Math.max(avgEnergy * 2.0, threshold);
                 offThreshold = onThreshold * 0.6;
             }
     
@@ -1988,7 +2040,7 @@
             var w = canvas.width = canvas.offsetWidth * 2;
             var h = canvas.height = canvas.offsetHeight * 2;
             ctx.clearRect(0, 0, w, h);
-            ctx.fillStyle = 'var(--surface)';
+            ctx.fillStyle = '#1a1d27'; /* matches --surface; canvas can't resolve CSS vars */
             ctx.fillRect(0, 0, w, h);
             ctx.strokeStyle = 'rgba(231, 76, 60, 0.27)';
             ctx.lineWidth = 1;
@@ -1999,7 +2051,7 @@
             ctx.lineTo(w, threshY);
             ctx.stroke();
             ctx.setLineDash([]);
-            ctx.strokeStyle = energy > threshold ? 'var(--yellow)' : 'var(--accent)';
+            ctx.strokeStyle = energy > threshold ? '#f1c40f' : '#6c63ff'; /* --yellow / --accent */
             ctx.lineWidth = 2;
             ctx.beginPath();
             var sliceWidth = w / data.length;
@@ -2016,7 +2068,7 @@
             }
             ctx.stroke();
             var energyBar = Math.min(1, energy * 5);
-            var barColor = energy > threshold ? 'var(--green)' : 'var(--red)';
+            var barColor = energy > threshold ? '#2ecc71' : '#e74c3c'; /* --green / --red */
             ctx.fillStyle = barColor + '33';
             ctx.fillRect(0, 0, w * energyBar, 3);
         }
@@ -2064,17 +2116,6 @@
             document.getElementById('decodeOutputLabel').classList.remove('visible');
             document.getElementById('fileInput').focus();
         }
-        
-        (function () {
-            var el = document.getElementById('refTable');
-            var keys = Object.keys(MORSE_MAP);
-            var html = '<div class="morse-grid">';
-            for (var i = 0; i < keys.length; i++) {
-                html += '<div class="morse-item"><div class="char">' + keys[i] + '</div><div class="code">' + MORSE_MAP[keys[i]] + '</div></div>';
-            }
-            html += '</div>';
-            el.innerHTML = html;
-        })();
         
         document.getElementById('offlineDLLink').href = window.location.href;
 
